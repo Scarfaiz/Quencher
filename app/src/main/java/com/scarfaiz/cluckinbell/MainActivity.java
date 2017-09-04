@@ -17,6 +17,8 @@ import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
+import org.osmdroid.views.overlay.compass.CompassOverlay;
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
 public class MainActivity extends Activity {
 
@@ -35,6 +37,19 @@ public class MainActivity extends Activity {
         map = (MapView) findViewById(R.id.map);
         map.setTileSource(TileSourceFactory.MAPNIK);
         map.setMultiTouchControls(true);
+
+        MyLocationNewOverlay oMapLocationOverlay = new MyLocationNewOverlay(map);
+        map.getOverlays().add(oMapLocationOverlay);
+        oMapLocationOverlay.enableFollowLocation();
+        oMapLocationOverlay.enableMyLocation();
+        oMapLocationOverlay.enableFollowLocation();
+        CompassOverlay compassOverlay = new CompassOverlay(this, map);
+        compassOverlay.enableCompass();
+        map.getOverlays().add(compassOverlay);
+        compassOverlay.getOrientation();
+        
+
+
         mapController = map.getController();
         mapController.setZoom(9);
         GeoPoint startPoint = new GeoPoint(48.8583, 2.2944);
