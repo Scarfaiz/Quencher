@@ -18,8 +18,9 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.compass.CompassOverlay;
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
-
+import org.osmdroid.views.overlay.Marker;
 public class MainActivity extends Activity {
 
     LocationManager locationManager;
@@ -32,30 +33,40 @@ public class MainActivity extends Activity {
         Context ctx = getApplicationContext();
         //important! set your user agent to prevent getting banned from the osm servers
         Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx));
-        Configuration.getInstance().setUserAgentValue("CB");
+        Configuration.getInstance().setUserAgentValue("CluckinBell");
         setContentView(R.layout.activity_main);
         map = (MapView) findViewById(R.id.map);
         map.setTileSource(TileSourceFactory.MAPNIK);
         map.setMultiTouchControls(true);
-
-        MyLocationNewOverlay oMapLocationOverlay = new MyLocationNewOverlay(map);
-        map.getOverlays().add(oMapLocationOverlay);
-        oMapLocationOverlay.enableFollowLocation();
-        oMapLocationOverlay.enableMyLocation();
-        oMapLocationOverlay.enableFollowLocation();
-        CompassOverlay compassOverlay = new CompassOverlay(this, map);
-        compassOverlay.enableCompass();
-        map.getOverlays().add(compassOverlay);
-        compassOverlay.getOrientation();
-        
-
-
         mapController = map.getController();
         mapController.setZoom(9);
         GeoPoint startPoint = new GeoPoint(48.8583, 2.2944);
         mapController.setCenter(startPoint);
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        Button button = (Button) findViewById(R.id.button);
+        MyLocationNewOverlay oMapLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(getApplicationContext()), map);
+        oMapLocationOverlay.enableFollowLocation();
+        oMapLocationOverlay.enableMyLocation();
+        //oMapLocationOverlay.getMyLocation();
+        map.getOverlays().add(oMapLocationOverlay);
+
+
+        //MARKERS!!!!!!!! (TO-DO)
+        /*Marker startMarker = new Marker(map);
+        startMarker.setPosition(startPoint);
+        startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+        map.getOverlays().add(startMarker);
+        map.invalidate();*/
+
+
+        //who the fuck would use compass nowadays
+        /*CompassOverlay compassOverlay = new CompassOverlay(this, map);
+        compassOverlay.enableCompass();
+        compassOverlay.getOrientation();
+        map.getOverlays().add(compassOverlay);*/
+
+
+        //buttons, off for now
+        /*Button button = (Button) findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -67,7 +78,7 @@ public class MainActivity extends Activity {
                     return;
                 }
             }
-        });
+        });*/
     }
 
 
@@ -78,28 +89,28 @@ public class MainActivity extends Activity {
         //if you make changes to the configuration, use
         //SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         //Configuration.getInstance().save(this, prefs);
-        int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+       /* int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
         Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this));
-            return;}
+            return;}*/
     }
 
     @Override
     protected void onPause() {
         // TODO Auto-generated method stub
         super.onPause();
-        locationManager.removeUpdates(myLocationListener);
+        //locationManager.removeUpdates(myLocationListener);
     }
 
-    private void updateLoc(Location loc){
+    /*private void updateLoc(Location loc){
         GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
         mapController.setCenter(locGeoPoint);
         map.invalidate();
     }
 
-    private LocationListener myLocationListener
+    /*private LocationListener myLocationListener
             = new LocationListener(){
 
         @Override
@@ -128,6 +139,6 @@ public class MainActivity extends Activity {
 
         }
 
-    };
+    };*/
 
 }
