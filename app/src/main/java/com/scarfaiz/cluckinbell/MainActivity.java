@@ -8,6 +8,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.PermissionChecker;
 import android.view.View;
 import android.widget.Button;
@@ -18,6 +19,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.compass.CompassOverlay;
+import org.osmdroid.views.overlay.gestures.RotationGestureOverlay;
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 import org.osmdroid.views.overlay.Marker;
@@ -27,28 +29,35 @@ public class MainActivity extends Activity {
     MapView map;
     IMapController mapController;
     public boolean geodata_updated = false;
+    MyLocationNewOverlay oMapLocationOverlay;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Context ctx = getApplicationContext();
         //important! set your user agent to prevent getting banned from the osm servers
         Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx));
-        Configuration.getInstance().setUserAgentValue("CluckinBell");
+        Configuration.getInstance().setUserAgentValue("CB");
         setContentView(R.layout.activity_main);
         map = (MapView) findViewById(R.id.map);
         map.setTileSource(TileSourceFactory.MAPNIK);
         map.setMultiTouchControls(true);
         mapController = map.getController();
-        mapController.setZoom(9);
+        mapController.setZoom(15);
         GeoPoint startPoint = new GeoPoint(48.8583, 2.2944);
         mapController.setCenter(startPoint);
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        MyLocationNewOverlay oMapLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(getApplicationContext()), map);
+
+
+        //location icon overlay
+        oMapLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(getApplicationContext()), map);
         oMapLocationOverlay.enableFollowLocation();
-        oMapLocationOverlay.enableMyLocation();
-        //oMapLocationOverlay.getMyLocation();
+        oMapLocationOverlay.enableMyLocation(new GpsMyLocationProvider(getApplicationContext()));
         map.getOverlays().add(oMapLocationOverlay);
 
+        //rotation
+        RotationGestureOverlay mRotationGestureOverlay = new RotationGestureOverlay(ctx, map);
+        mRotationGestureOverlay.setEnabled(true);
+        map.getOverlays().add(mRotationGestureOverlay);
 
         //MARKERS!!!!!!!! (TO-DO)
         /*Marker startMarker = new Marker(map);
@@ -65,9 +74,9 @@ public class MainActivity extends Activity {
         map.getOverlays().add(compassOverlay);*/
 
 
-        //buttons, off for now
-        /*Button button = (Button) findViewById(R.id.button);
-        button.setOnClickListener(new View.OnClickListener() {
+
+        FloatingActionButton LocButton = findViewById(R.id.locButton);
+        LocButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 //Toast.makeText(MainActivity.this, "Button Clicked", Toast.LENGTH_SHORT).show();
@@ -78,10 +87,8 @@ public class MainActivity extends Activity {
                     return;
                 }
             }
-        });*/
+        });
     }
-
-
 
     public void onResume(){
         super.onResume();
@@ -89,28 +96,28 @@ public class MainActivity extends Activity {
         //if you make changes to the configuration, use
         //SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         //Configuration.getInstance().save(this, prefs);
-       /* int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+        int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
         Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this));
-            return;}*/
+            return;}
     }
 
     @Override
     protected void onPause() {
         // TODO Auto-generated method stub
         super.onPause();
-        //locationManager.removeUpdates(myLocationListener);
+        locationManager.removeUpdates(myLocationListener);
     }
 
-    /*private void updateLoc(Location loc){
+    private void updateLoc(Location loc){
         GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
         mapController.setCenter(locGeoPoint);
         map.invalidate();
     }
 
-    /*private LocationListener myLocationListener
+    private LocationListener myLocationListener
             = new LocationListener(){
 
         @Override
@@ -139,6 +146,6 @@ public class MainActivity extends Activity {
 
         }
 
-    };*/
+    };
 
 }
