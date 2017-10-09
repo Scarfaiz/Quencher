@@ -3,6 +3,11 @@ package com.scarfaiz.cluckinbell;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -11,18 +16,16 @@ import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.PermissionChecker;
 import android.view.View;
-import android.widget.Button;
 
 import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
+import org.osmdroid.events.MapEventsReceiver;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
-import org.osmdroid.views.overlay.compass.CompassOverlay;
+import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.views.overlay.gestures.RotationGestureOverlay;
-import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
-import org.osmdroid.views.overlay.Marker;
 public class MainActivity extends Activity {
 
     LocationManager locationManager;
@@ -44,14 +47,27 @@ public class MainActivity extends Activity {
         mapController = map.getController();
         mapController.setZoom(15);
         GeoPoint startPoint = new GeoPoint(48.8583, 2.2944);
-        mapController.setCenter(startPoint);
+        mapController.animateTo(startPoint);
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
+        //location marker overlay
+        oMapLocationOverlay = new MyLocationNewOverlay(map);
 
-        //location icon overlay
-        oMapLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(getApplicationContext()), map);
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = 4;
+        Drawable drawable = getResources().getDrawable(R.drawable.direction_arrow);
+        Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+
+        oMapLocationOverlay.setPersonIcon(bitmap);
+        oMapLocationOverlay.enableMyLocation(); // not on by default
         oMapLocationOverlay.enableFollowLocation();
-        oMapLocationOverlay.enableMyLocation(new GpsMyLocationProvider(getApplicationContext()));
+        oMapLocationOverlay.setDrawAccuracyEnabled(true);
+        oMapLocationOverlay.runOnFirstFix(new Runnable() {
+            public void run() {
+                mapController.animateTo(oMapLocationOverlay
+                        .getMyLocation());
+            }
+        });
         map.getOverlays().add(oMapLocationOverlay);
 
         //rotation
@@ -59,21 +75,11 @@ public class MainActivity extends Activity {
         mRotationGestureOverlay.setEnabled(true);
         map.getOverlays().add(mRotationGestureOverlay);
 
-        //MARKERS!!!!!!!! (TO-DO)
-        /*Marker startMarker = new Marker(map);
-        startMarker.setPosition(startPoint);
-        startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-        map.getOverlays().add(startMarker);
-        map.invalidate();*/
-
-
         //who the fuck would use compass nowadays
         /*CompassOverlay compassOverlay = new CompassOverlay(this, map);
         compassOverlay.enableCompass();
         compassOverlay.getOrientation();
         map.getOverlays().add(compassOverlay);*/
-
-
 
         FloatingActionButton LocButton = findViewById(R.id.locButton);
         LocButton.setOnClickListener(new View.OnClickListener() {
@@ -88,7 +94,34 @@ public class MainActivity extends Activity {
                 }
             }
         });
+
+        MapEventsReceiver mReceive = new MapEventsReceiver() {
+            @Override
+            public boolean singleTapConfirmedHelper(GeoPoint p) {
+                //Toast.makeText(getBaseContext(),p.getLatitude() + " - "+p.getLongitude(), Toast.LENGTH_LONG).show();
+
+                return false;
+            }
+
+            @Override
+            public boolean longPressHelper(GeoPoint p) {
+                Intent intent = new Intent(MainActivity.this, NewMarkerActivity.class);
+                startActivity(intent);
+                /*Marker startMarker = new Marker(map);
+                startMarker.setPosition(p);
+                startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+                map.getOverlays().add(startMarker);
+                map.invalidate();*/
+                return false;
+            }
+        };
+
+
+        MapEventsOverlay OverlayEvents = new MapEventsOverlay(getBaseContext(), mReceive);
+        map.getOverlays().add(OverlayEvents);
+
     }
+
 
     public void onResume(){
         super.onResume();
@@ -113,7 +146,7 @@ public class MainActivity extends Activity {
 
     private void updateLoc(Location loc){
         GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
-        mapController.setCenter(locGeoPoint);
+        mapController.animateTo(locGeoPoint);
         map.invalidate();
     }
 
