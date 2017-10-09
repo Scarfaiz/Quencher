@@ -2,8 +2,11 @@ package com.scarfaiz.cluckinbell;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
@@ -11,11 +14,15 @@ import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.PermissionChecker;
 import android.view.View;
+import android.widget.Toast;
+
 import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.events.MapEventsReceiver;
@@ -25,6 +32,9 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.views.overlay.gestures.RotationGestureOverlay;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
+
+import java.security.Permission;
+
 public class MainActivity extends Activity {
 
     LocationManager locationManager;
@@ -68,8 +78,13 @@ public class MainActivity extends Activity {
         mRotationGestureOverlay.setEnabled(true);
         map.getOverlays().add(mRotationGestureOverlay);
         //asking for location
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
+
+        int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
+        if (permission == PermissionChecker.PERMISSION_GRANTED) {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
+        }
+        else GetLocPermission();
         //setting listener for locButton
         LocButton = findViewById(R.id.locButton);
         LocButton.setOnClickListener(new View.OnClickListener() {
@@ -79,6 +94,10 @@ public class MainActivity extends Activity {
                 if (permission == PermissionChecker.PERMISSION_GRANTED) {
                     Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                     updateLoc(lastLocation);
+                    return;
+                }
+                else {
+                    GetLocPermission();
                     return;
                 }
             }
@@ -131,9 +150,13 @@ public class MainActivity extends Activity {
     }
 
     private void updateLoc(Location loc){
+        int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+        if (permission == PermissionChecker.PERMISSION_GRANTED) {
         GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
         mapController.animateTo(locGeoPoint);
-        map.invalidate();
+        map.invalidate();}
+        else GetLocPermission();
+
     }
 
     private LocationListener myLocationListener
@@ -166,5 +189,8 @@ public class MainActivity extends Activity {
         }
 
     };
-
+    public void GetLocPermission() {
+        Toast.makeText(MainActivity.this, "Для работы приложения необходимо предоставить разрешение на использование геопозиции", Toast.LENGTH_LONG).show();
+        startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + BuildConfig.APPLICATION_ID)));
+    }
 }
