@@ -16,7 +16,6 @@ import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.PermissionChecker;
 import android.view.View;
-
 import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.events.MapEventsReceiver;
@@ -33,59 +32,49 @@ public class MainActivity extends Activity {
     IMapController mapController;
     public boolean geodata_updated = false;
     MyLocationNewOverlay oMapLocationOverlay;
+    Bitmap person_bitmap;
+    Drawable person_drawable;
+    BitmapFactory.Options person_options;
+    GeoPoint startPoint;
+    FloatingActionButton LocButton;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Context ctx = getApplicationContext();
-        //important! set your user agent to prevent getting banned from the osm servers
         Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx));
         Configuration.getInstance().setUserAgentValue("CB");
         setContentView(R.layout.activity_main);
-        map = (MapView) findViewById(R.id.map);
+        map = findViewById(R.id.map);
         map.setTileSource(TileSourceFactory.MAPNIK);
         map.setMultiTouchControls(true);
         mapController = map.getController();
         mapController.setZoom(15);
-        GeoPoint startPoint = new GeoPoint(48.8583, 2.2944);
+        startPoint = new GeoPoint(48.8583, 2.2944);
         mapController.animateTo(startPoint);
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-
         //location marker overlay
         oMapLocationOverlay = new MyLocationNewOverlay(map);
-
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inSampleSize = 4;
-        Drawable drawable = getResources().getDrawable(R.drawable.direction_arrow);
-        Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-
-        oMapLocationOverlay.setPersonIcon(bitmap);
-        oMapLocationOverlay.enableMyLocation(); // not on by default
+        person_options = new BitmapFactory.Options();
+        person_options.inSampleSize = 4;
+        person_drawable = getResources().getDrawable(R.drawable.direction_arrow);
+        person_bitmap = ((BitmapDrawable) person_drawable).getBitmap();
+        oMapLocationOverlay.setPersonIcon(person_bitmap);
+        oMapLocationOverlay.enableMyLocation();
         oMapLocationOverlay.enableFollowLocation();
         oMapLocationOverlay.setDrawAccuracyEnabled(true);
-        oMapLocationOverlay.runOnFirstFix(new Runnable() {
-            public void run() {
-                mapController.animateTo(oMapLocationOverlay
-                        .getMyLocation());
-            }
-        });
         map.getOverlays().add(oMapLocationOverlay);
-
         //rotation
         RotationGestureOverlay mRotationGestureOverlay = new RotationGestureOverlay(ctx, map);
         mRotationGestureOverlay.setEnabled(true);
         map.getOverlays().add(mRotationGestureOverlay);
-
-        //who the fuck would use compass nowadays
-        /*CompassOverlay compassOverlay = new CompassOverlay(this, map);
-        compassOverlay.enableCompass();
-        compassOverlay.getOrientation();
-        map.getOverlays().add(compassOverlay);*/
-
-        FloatingActionButton LocButton = findViewById(R.id.locButton);
+        //asking for location
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
+        //setting listener for locButton
+        LocButton = findViewById(R.id.locButton);
         LocButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //Toast.makeText(MainActivity.this, "Button Clicked", Toast.LENGTH_SHORT).show();
                 int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
                 if (permission == PermissionChecker.PERMISSION_GRANTED) {
                     Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
@@ -115,11 +104,8 @@ public class MainActivity extends Activity {
                 return false;
             }
         };
-
-
         MapEventsOverlay OverlayEvents = new MapEventsOverlay(getBaseContext(), mReceive);
         map.getOverlays().add(OverlayEvents);
-
     }
 
 
