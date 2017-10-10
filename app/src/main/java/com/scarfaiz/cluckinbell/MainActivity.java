@@ -2,11 +2,8 @@ package com.scarfaiz.cluckinbell;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
@@ -17,7 +14,6 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.PermissionChecker;
 import android.view.View;
@@ -32,8 +28,6 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.views.overlay.gestures.RotationGestureOverlay;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
-
-import java.security.Permission;
 
 public class MainActivity extends Activity {
 
@@ -66,7 +60,7 @@ public class MainActivity extends Activity {
         oMapLocationOverlay = new MyLocationNewOverlay(map);
         person_options = new BitmapFactory.Options();
         person_options.inSampleSize = 4;
-        person_drawable = getResources().getDrawable(R.drawable.direction_arrow);
+        person_drawable = getResources().getDrawable(R.drawable.marker_cluster);
         person_bitmap = ((BitmapDrawable) person_drawable).getBitmap();
         oMapLocationOverlay.setPersonIcon(person_bitmap);
         oMapLocationOverlay.enableMyLocation();
