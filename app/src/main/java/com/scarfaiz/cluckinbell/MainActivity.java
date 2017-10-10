@@ -161,7 +161,8 @@ public class MainActivity extends Activity {
             // TODO Auto-generated method stub
             if(!geodata_updated){
                 updateLoc(location);
-                geodata_updated = true;}
+                geodata_updated = true;
+            }
         }
 
         @Override
