@@ -4,27 +4,45 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical" android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:weightSum="1">
+    android:weightSum="1"
+    >
 
-    <TextView
-        android:id="@+id/marker_name_title"
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/marker_layout_toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Название*" />
+        android:background="?attr/colorPrimary"
+        android:minHeight="?attr/actionBarSize"
+        android:theme="?attr/actionBarTheme"
+        app:title="Добавление нового места"
+        app:navigationIcon="?attr/homeAsUpIndicator"/>
 
-    <EditText
-        android:id="@+id/marker_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:inputType="textPersonName"
-        android:text="Название места" />
+
+        <TextView
+            android:id="@+id/marker_name_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Название*"
+            android:paddingTop="30dp"
+            android:paddingLeft="15dp"/>
+
+        <EditText
+            android:id="@+id/marker_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:inputType="textPersonName"
+            android:hint="Название места"
+            android:paddingTop="20dp"
+            android:paddingLeft="15dp"/>
 
     <TextView
         android:id="@+id/marker_address_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Адрес*" />
+        android:text="Адрес*"
+        android:paddingTop="20dp"
+        android:paddingLeft="15dp"/>
 
     <EditText
         android:id="@+id/marker_address"
@@ -32,40 +50,56 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="textPersonName"
-        android:text="Адрес места" />
+        android:hint="Адрес места"
+        android:paddingTop="20dp"
+        android:paddingLeft="15dp"/>
 
     <TextView
         android:id="@+id/marker_photos_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Фотографии" />
+        android:text="Фотографии"
+        android:paddingTop="20dp"
+        android:paddingLeft="15dp"/>
 
     <ImageView
-        android:id="@+id/imageView"
+        android:id="@+id/marker_photos_view"
         android:layout_width="136dp"
         android:layout_height="109dp"
-        app:srcCompat="@android:drawable/ic_menu_add" />
+        app:srcCompat="@android:drawable/ic_menu_add"
+        android:paddingTop="20dp"
+        android:paddingLeft="15dp"/>
 
     <TextView
         android:id="@+id/marker_open_hours_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Часы продажи" />
+        android:text="Часы продажи"
+        android:paddingTop="20dp"
+        android:paddingLeft="15dp"/>
 
     <Spinner
         android:id="@+id/marker_o_h_spinner"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:paddingTop="20dp"
+        android:paddingLeft="15dp"
+        android:entries="@array/marker_o_h_spinner_items"/>
 
     <TextView
         android:id="@+id/marker_range_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Ассортимент" />
+        android:text="Ассортимент"
+        android:paddingTop="20dp"
+        android:paddingLeft="15dp"/>
 
     <Spinner
         android:id="@+id/marker_range_spinner"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:paddingTop="20dp"
+        android:paddingLeft="15dp"
+        android:entries="@array/marker_range_spinner_items"/>
 
 </LinearLayout>

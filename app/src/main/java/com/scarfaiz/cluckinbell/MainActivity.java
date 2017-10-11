@@ -58,14 +58,16 @@ public class MainActivity extends Activity {
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         //location marker overlay
         oMapLocationOverlay = new MyLocationNewOverlay(map);
-        person_options = new BitmapFactory.Options();
+        /*person_options = new BitmapFactory.Options();
         person_options.inSampleSize = 4;
         person_drawable = getResources().getDrawable(R.drawable.marker_cluster);
         person_bitmap = ((BitmapDrawable) person_drawable).getBitmap();
-        oMapLocationOverlay.setPersonIcon(person_bitmap);
+        oMapLocationOverlay.setPersonIcon(person_bitmap);*/
         oMapLocationOverlay.enableMyLocation();
         oMapLocationOverlay.enableFollowLocation();
         oMapLocationOverlay.setDrawAccuracyEnabled(true);
+        oMapLocationOverlay.setDirectionArrow(BitmapFactory.decodeResource(getResources(), R.drawable.direction_arrow),
+                BitmapFactory.decodeResource(getResources(), R.drawable.direction_arrow));
         map.getOverlays().add(oMapLocationOverlay);
         //rotation
         RotationGestureOverlay mRotationGestureOverlay = new RotationGestureOverlay(ctx, map);
