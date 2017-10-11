@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
@@ -68,9 +67,10 @@ public class MainActivity extends Activity {
         mapController = map.getController();
         mapController.setZoom(13);
         startPoint = new GeoPoint(59.93863, 30.31413);
-        mapController.animateTo(startPoint);
+        mapController.setCenter(startPoint);
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         //location marker overlay
+        locationManager.removeUpdates(myLocationListener);
         oMapLocationOverlay = new MyLocationNewOverlay(map);
         oMapLocationOverlay.enableMyLocation();
         //oMapLocationOverlay.enableFollowLocation();
@@ -173,7 +173,9 @@ public class MainActivity extends Activity {
         int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
             GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
-            mapController.animateTo(locGeoPoint);
+            mapController.setCenter(locGeoPoint);
+            /*SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            prefs.edit().putFloat("Latitude", Float.parseFloat(loc.getLatitude()));*/
         } else GetLocPermission();
 
     }

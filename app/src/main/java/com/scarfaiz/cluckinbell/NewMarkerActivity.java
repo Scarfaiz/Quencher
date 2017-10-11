@@ -1,8 +1,8 @@
 package com.scarfaiz.cluckinbell;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 
@@ -10,16 +10,12 @@ import android.view.View;
  * Created by higgs on 07.10.2017.
  */
 
-public class NewMarkerActivity extends Activity {
+public class NewMarkerActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_marker);
-
-
-
-        Toolbar toolbar = findViewById(R.id.marker_layout_toolbar);
-
+        Toolbar toolbar = (Toolbar)findViewById(R.id.marker_layout_toolbar);
         toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -28,5 +24,8 @@ public class NewMarkerActivity extends Activity {
             }
         });
 
+    }
+    public void uphandler(View v){
+        this.finish();    // This will kill current activity, and if previous activity is still opened in background, it will come in front.
     }
 }

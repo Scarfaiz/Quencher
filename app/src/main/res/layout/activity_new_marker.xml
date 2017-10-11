@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:weightSum="1"
     >
-
     <android.support.v7.widget.Toolbar
         android:id="@+id/marker_layout_toolbar"
         android:layout_width="match_parent"
@@ -15,8 +14,18 @@
         android:minHeight="?attr/actionBarSize"
         android:theme="?attr/actionBarTheme"
         app:title="Добавление нового места"
-        app:navigationIcon="?attr/homeAsUpIndicator"/>
+        app:navigationIcon="?attr/homeAsUpIndicator">
 
+    <ImageButton
+        android:id="@+id/upButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="uphandler"
+        android:src="@android:drawable/ic_menu_send"
+        android:layout_gravity="end"
+        android:background="@android:color/transparent"/>
+
+    </android.support.v7.widget.Toolbar>
 
         <TextView
             android:id="@+id/marker_name_title"
