@@ -101,8 +101,6 @@ public class MainActivity extends AppCompatActivity {
     FloatingActionButton NewMarkerButton;
     SharedPreferences prefs;
     String url;
-    InputStream stream;
-    XmlPullParser parser;
 
     int[] mDrawables = {
             R.drawable.cheese_3,
@@ -261,21 +259,7 @@ public class MainActivity extends AppCompatActivity {
                 viewPager.setAdapter(adapter);
                 behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
                 url = "http://nominatim.openstreetmap.org/reverse?format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
-                GetUrlContentTask asyncTask =new GetUrlContentTask(new AsyncResponse() {
-
-                    @Override
-                    public void processFinish(Object output) {
-                        final TextView BottomSheetTitle = (TextView)findViewById(R.id.bottom_sheet_title);
-                        try {
-                            BottomSheetTitle.setText(ConvertXMLToString((String)output, "street"));
-                        } catch (XmlPullParserException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-                asyncTask.execute(url);
+                new GetUrlContentTask().execute(url);
                 Marker startMarker = new Marker(map);
                 startMarker.setPosition(p);
                 startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
@@ -288,38 +272,6 @@ public class MainActivity extends AppCompatActivity {
         map.getOverlays().add(OverlayEvents);
 
     }
-
-    public String ConvertXMLToString(String xmlResult, String option) throws XmlPullParserException, UnsupportedEncodingException, IOException {
-            String address = "";
-            stream = new ByteArrayInputStream(xmlResult.getBytes(StandardCharsets.UTF_8.name()));
-            parser = Xml.newPullParser();
-            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-            parser.setInput(stream, null);
-        switch (option) {
-            case ("street"): {
-
-                int eventType = parser.getEventType();
-                while (eventType != XmlPullParser.END_DOCUMENT) {
-                    if(eventType == XmlPullParser.START_DOCUMENT) {
-                        if(parser.getName() == "road")
-                            address += parser.getName();
-                    } else if(eventType == XmlPullParser.START_TAG) {
-                        address +="Start tag "+parser.getName();
-                    } else if(eventType == XmlPullParser.END_TAG) {
-                        address +="End tag "+parser.getName();
-                    } else if(eventType == XmlPullParser.TEXT) {
-                        address +="Text "+parser.getText();
-                    }
-                    eventType = parser.next();
-                }
-            }
-            default: {
-                address = "not working";
-            }
-        }
-        return address;
-    }
-
     public void onResume() {
         super.onResume();
         //this will refresh the osmdroid configuration on resuming.
@@ -352,6 +304,7 @@ public class MainActivity extends AppCompatActivity {
             prefs.edit().putFloat("Latitude", Latitude);
             float Longitude = (float)loc.getLongitude();
             prefs.edit().putFloat("Latitude", Longitude);
+            prefs.edit().apply();
         } else GetLocPermission();
 
     }
@@ -481,4 +434,81 @@ public class MainActivity extends AppCompatActivity {
                 .create()
                 .show();
     }
+
+    public class GetUrlContentTask extends AsyncTask<String, Void, String> {
+
+        @Override
+        protected String doInBackground(String... urls) {
+            try {
+                return loadXmlFromNetwork(urls[0]);
+            } catch (XmlPullParserException e) {
+                return "connection_error";
+            } catch (IOException e) {
+                return "xml_error";
+            }
+        }
+
+        private String loadXmlFromNetwork(String urlString) throws XmlPullParserException, IOException {
+            InputStream stream = null;
+            // Instantiate the parser
+            XMLParser stackOverflowXmlParser = new XMLParser();
+            List<XMLParser.Entry> entries = null;
+
+            StringBuilder htmlString = new StringBuilder();
+            try {
+                stream = downloadUrl(urlString);
+                entries = stackOverflowXmlParser.parse(stream);
+                // Makes sure that the InputStream is closed after the app is
+                // finished using it.
+            } finally {
+                if (stream != null) {
+                    stream.close();
+                }
+            }
+
+            // StackOverflowXmlParser returns a List (called "entries") of Entry objects.
+            // Each Entry object represents a single post in the XML feed.
+            // This section processes the entries list to combine each entry with HTML markup.
+            // Each entry is displayed in the UI as a link that optionally includes
+            // a text summary.
+            for (XMLParser.Entry entry : entries) {
+                htmlString.append(entry.city);
+                htmlString.append(entry.road);
+                htmlString.append(entry.house_number);
+            }
+            return htmlString.toString();
+        }
+
+        // Given a string representation of a URL, sets up a connection and gets
+// an input stream.
+        private InputStream downloadUrl(String urlString) throws IOException {
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setReadTimeout(10000 /* milliseconds */);
+            conn.setConnectTimeout(15000 /* milliseconds */);
+            conn.setRequestMethod("GET");
+            conn.setDoInput(true);
+            // Starts the query
+            conn.connect();
+            int statusCode = 0;
+            statusCode = conn.getResponseCode();
+            InputStream is = null;
+            if (statusCode >= 200 && statusCode < 400) {
+                // Create an InputStream in order to extract the response object
+                    is = conn.getInputStream();
+            }
+            else {
+                is = conn.getErrorStream();
+            }
+            return is;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            // Displays the HTML string in the UI via a WebView
+            bottomSheetTextView = (TextView) findViewById(R.id.bottom_sheet_title);
+            bottomSheetTextView.setText(result);
+        }
+    }
+
 }
