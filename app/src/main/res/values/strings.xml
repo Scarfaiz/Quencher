@@ -9,8 +9,6 @@
 
     <string name="key_binding_default_toolbar_name">Modal-Toolbar-Title</string>
 
-    <string name="dummy_text"></string>
-
     <string-array name="marker_range_spinner_items">
         <item>Широкий ассортимент</item>
         <item>Только слабоалкогольные напитки</item>

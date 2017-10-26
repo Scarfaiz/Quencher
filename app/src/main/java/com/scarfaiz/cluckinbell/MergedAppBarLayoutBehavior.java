@@ -249,7 +249,7 @@ public class MergedAppBarLayoutBehavior extends AppBarLayout.ScrollingViewBehavi
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     super.onAnimationEnd(animation);
-                    ((AppCompatActivity)mContext).setSupportActionBar(mToolbar);
+                    ((AppCompatActivity)(mContext)).setSupportActionBar(mToolbar);
                     mToolbar.setNavigationOnClickListener(mOnNavigationClickListener);
                     ActionBar actionBar = ((AppCompatActivity)mContext).getSupportActionBar();
                     if (actionBar != null) {

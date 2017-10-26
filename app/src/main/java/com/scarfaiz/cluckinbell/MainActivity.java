@@ -6,14 +6,18 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -27,11 +31,14 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.util.Xml;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.support.v7.widget.Toolbar;
 
+import org.json.JSONObject;
 import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.events.MapEventsReceiver;
@@ -39,13 +46,42 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.MapEventsOverlay;
+import org.osmdroid.views.overlay.Marker;
 import org.osmdroid.views.overlay.gestures.RotationGestureOverlay;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import okhttp3.HttpUrl;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -60,8 +96,13 @@ public class MainActivity extends AppCompatActivity {
     GeoPoint startPoint;
     FloatingActionButton LocButton;
     int permsRequestCode;
-
+    FrameLayout FrameLayoutBottom;
     TextView bottomSheetTextView;
+    FloatingActionButton NewMarkerButton;
+    SharedPreferences prefs;
+    String url;
+    InputStream stream;
+    XmlPullParser parser;
 
     int[] mDrawables = {
             R.drawable.cheese_3,
@@ -76,7 +117,8 @@ public class MainActivity extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Context ctx = getApplicationContext();
-        Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx));
+        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        Configuration.getInstance().load(ctx, prefs);
         Configuration.getInstance().setUserAgentValue("CB");
         setContentView(R.layout.activity_main);
         permsRequestCode = 1;
@@ -86,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
         map.setMultiTouchControls(true);
         mapController = map.getController();
         mapController.setZoom(13);
-        startPoint = new GeoPoint(59.93863, 30.31413);
+        startPoint = new GeoPoint(prefs.getFloat("Latitude",59.93863f), prefs.getFloat("Longitude",30.31413f));
         mapController.setCenter(startPoint);
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         //location marker overlay
@@ -142,26 +184,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        ActionBar actionBar = getActionBar();
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true);
-            actionBar.setTitle(" ");
-        }
-
         /**
          * If we want to listen for states callback
          */
         CoordinatorLayout coordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinatorlayout);
         View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
         final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
+        behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_HIDDEN);
         behavior.addBottomSheetCallback(new BottomSheetBehaviorGoogleMapsLike.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 switch (newState) {
                     case BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED:
                         Log.d("bottomsheet-", "STATE_COLLAPSED");
+                        LocButton.setVisibility(View.VISIBLE);
                         break;
                     case BottomSheetBehaviorGoogleMapsLike.STATE_DRAGGING:
                         Log.d("bottomsheet-", "STATE_DRAGGING");
@@ -183,9 +219,9 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                LocButton.setVisibility(View.INVISIBLE);
             }
         });
-
         AppBarLayout mergedAppBarLayout = (AppBarLayout) findViewById(R.id.merged_appbarlayout);
         MergedAppBarLayoutBehavior mergedAppBarLayoutBehavior = MergedAppBarLayoutBehavior.from(mergedAppBarLayout);
         mergedAppBarLayoutBehavior.setToolbarTitle("Title Dummy");
@@ -197,7 +233,17 @@ public class MainActivity extends AppCompatActivity {
         });
 
         bottomSheetTextView = (TextView) bottomSheet.findViewById(R.id.bottom_sheet_title);
+        FrameLayoutBottom = (FrameLayout)findViewById(R.id.dummy_framelayout_replacing_map);
 
+        NewMarkerButton = (FloatingActionButton) findViewById(R.id.new_marker_button);
+
+        NewMarkerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, NewMarkerActivity.class);
+                startActivity(intent);
+            }
+        });
 
         MapEventsReceiver mReceive = new MapEventsReceiver() {
             @Override
@@ -214,20 +260,64 @@ public class MainActivity extends AppCompatActivity {
                 ViewPager viewPager = (ViewPager) findViewById(R.id.pager);
                 viewPager.setAdapter(adapter);
                 behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
+                url = "http://nominatim.openstreetmap.org/reverse?format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
+                GetUrlContentTask asyncTask =new GetUrlContentTask(new AsyncResponse() {
 
-                /*Intent intent = new Intent(MainActivity.this, NewMarkerActivity.class);
-                startActivity(intent);*/
-                /*Marker startMarker = new Marker(map);
+                    @Override
+                    public void processFinish(Object output) {
+                        final TextView BottomSheetTitle = (TextView)findViewById(R.id.bottom_sheet_title);
+                        try {
+                            BottomSheetTitle.setText(ConvertXMLToString((String)output, "street"));
+                        } catch (XmlPullParserException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                asyncTask.execute(url);
+                Marker startMarker = new Marker(map);
                 startMarker.setPosition(p);
                 startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
                 map.getOverlays().add(startMarker);
-                map.invalidate();*/
+                map.invalidate();
                 return false;
             }
         };
         MapEventsOverlay OverlayEvents = new MapEventsOverlay(getBaseContext(), mReceive);
         map.getOverlays().add(OverlayEvents);
 
+    }
+
+    public String ConvertXMLToString(String xmlResult, String option) throws XmlPullParserException, UnsupportedEncodingException, IOException {
+            String address = "";
+            stream = new ByteArrayInputStream(xmlResult.getBytes(StandardCharsets.UTF_8.name()));
+            parser = Xml.newPullParser();
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(stream, null);
+        switch (option) {
+            case ("street"): {
+
+                int eventType = parser.getEventType();
+                while (eventType != XmlPullParser.END_DOCUMENT) {
+                    if(eventType == XmlPullParser.START_DOCUMENT) {
+                        if(parser.getName() == "road")
+                            address += parser.getName();
+                    } else if(eventType == XmlPullParser.START_TAG) {
+                        address +="Start tag "+parser.getName();
+                    } else if(eventType == XmlPullParser.END_TAG) {
+                        address +="End tag "+parser.getName();
+                    } else if(eventType == XmlPullParser.TEXT) {
+                        address +="Text "+parser.getText();
+                    }
+                    eventType = parser.next();
+                }
+            }
+            default: {
+                address = "not working";
+            }
+        }
+        return address;
     }
 
     public void onResume() {
@@ -256,9 +346,12 @@ public class MainActivity extends AppCompatActivity {
         int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
             GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
-            mapController.setCenter(locGeoPoint);
-            /*SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-            prefs.edit().putFloat("Latitude", Float.parseFloat(loc.getLatitude()));*/
+            mapController.animateTo(locGeoPoint);
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            float Latitude = (float)loc.getLatitude();
+            prefs.edit().putFloat("Latitude", Latitude);
+            float Longitude = (float)loc.getLongitude();
+            prefs.edit().putFloat("Latitude", Longitude);
         } else GetLocPermission();
 
     }
@@ -270,7 +363,9 @@ public class MainActivity extends AppCompatActivity {
         public void onLocationChanged(Location location) {
             // TODO Auto-generated method stub
             if (!geodata_updated) {
-                updateLoc(location);
+                //updateLoc(location);
+                GeoPoint locGeoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
+                mapController.setCenter(locGeoPoint);
                 mapController.zoomTo(17);
                 map.invalidate();
                 geodata_updated = true;

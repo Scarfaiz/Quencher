@@ -284,8 +284,11 @@ public class BottomSheetBehaviorGoogleMapsLike<V extends View> extends Coordinat
         if ( mState == STATE_DRAGGING  &&  action == MotionEvent.ACTION_DOWN ) {
             return true;
         }
-
-        mViewDragHelper.processTouchEvent( event );
+        try {
+            mViewDragHelper.processTouchEvent( event );
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
 
         if ( action == MotionEvent.ACTION_DOWN ) {
             reset();
