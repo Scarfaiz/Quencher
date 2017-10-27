@@ -258,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
                 ViewPager viewPager = (ViewPager) findViewById(R.id.pager);
                 viewPager.setAdapter(adapter);
                 behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
-                url = "http://nominatim.openstreetmap.org/reverse?format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
+                url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
                 new GetUrlContentTask().execute(url);
                 Marker startMarker = new Marker(map);
                 startMarker.setPosition(p);
@@ -442,6 +442,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 return loadXmlFromNetwork(urls[0]);
             } catch (XmlPullParserException e) {
+                Log.d("LogDebug", e.getMessage());
                 return "connection_error";
             } catch (IOException e) {
                 return "xml_error";
