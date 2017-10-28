@@ -18,7 +18,7 @@ public class XMLParser {
     // We don't use namespaces
     private static final String ns = null;
 
-    public List parse(InputStream in) throws XmlPullParserException, IOException {
+    public List<XMLParser.Entry> parse(InputStream in) throws XmlPullParserException, IOException {
         try {
             XmlPullParser parser = Xml.newPullParser();
             parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
@@ -30,7 +30,7 @@ public class XMLParser {
         }
     }
 
-    private List readFeed(XmlPullParser parser) throws XmlPullParserException, IOException {
+    private List<XMLParser.Entry> readFeed(XmlPullParser parser) throws XmlPullParserException, IOException {
         List entries = new ArrayList();
 
         parser.require(XmlPullParser.START_TAG, ns, "reversegeocode");
@@ -73,7 +73,7 @@ public class XMLParser {
                 continue;
             }
             String name = parser.getName();
-            if (name.equals("city")) {
+            if (name.equals("state")) {
                 city = readCity(parser);
             } else if (name.equals("road")) {
                 road = readRoad(parser);
@@ -88,9 +88,9 @@ public class XMLParser {
 
     // Processes city tags in the feed.
     private String readCity(XmlPullParser parser) throws IOException, XmlPullParserException {
-        parser.require(XmlPullParser.START_TAG, ns, "city");
+        parser.require(XmlPullParser.START_TAG, ns, "state");
         String city = readText(parser);
-        parser.require(XmlPullParser.END_TAG, ns, "city");
+        parser.require(XmlPullParser.END_TAG, ns, "state");
         return city;
     }
 

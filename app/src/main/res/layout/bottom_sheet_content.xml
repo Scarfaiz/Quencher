@@ -26,15 +26,15 @@
                 android:id="@+id/bottom_sheet_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Title dummy qqqq"
+                android:text="Адрес загружается..."
                 android:textColor="@android:color/white"
                 android:textSize="19sp"/>
 
             <TextView
-                android:id="@+id/text_dummy1"
+                android:id="@+id/bottom_sheet_subtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Text dummy 1234 1234"
+                android:text="Адрес загружается..."
                 android:textColor="@android:color/white"
                 android:textSize="12sp"
                 android:layout_marginTop="5dp"/>
@@ -42,7 +42,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Text dummy qwer asdf zxcv"
+                android:text="Text 3"
                 android:textColor="@android:color/white"
                 android:textSize="12sp"
                 android:layout_marginTop="5dp"/>
@@ -52,7 +52,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="5 min"
+            android:text="Добавить место"
             android:textColor="@android:color/white"
             android:textSize="14sp"
             android:layout_alignParentEnd="true"
@@ -87,7 +87,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="BUTTON 1"
+                android:text="Проложить маршрут"
                 android:textColor="@android:color/black"
                 android:layout_alignParentBottom="true"/>
         </RelativeLayout>
@@ -105,14 +105,14 @@
                 android:id="@+id/button2"
                 android:layout_width="70dp"
                 android:layout_height="60dp"
-                android:src="@android:drawable/ic_dialog_info"
+                android:src="@android:drawable/ic_menu_edit"
                 android:layout_centerHorizontal="true"
                 android:background="?attr/selectableItemBackgroundBorderless"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="BUTTON 2"
+                android:text="Редактировать"
                 android:textColor="@android:color/black"/>
         </LinearLayout>
 
@@ -131,7 +131,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="BUTTON 3"
+                android:text="Поделиться"
                 android:textColor="@android:color/black"
                 android:layout_alignParentBottom="true"/>
         </RelativeLayout>
@@ -212,19 +212,17 @@
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp">
+        android:layout_height="620dp"
+        android:layout_marginTop="40dp">
 
         <TextView
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="APACHE LICENSE"
+            android:layout_height="fill_parent"
+            android:text="Комментарии"
             android:layout_gravity="center_vertical"
-            android:textSize="18sp"
-            android:textColor="@android:color/darker_gray"/>
+            android:textSize="18sp" />
     </FrameLayout>
-
+    <!--
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -247,4 +245,5 @@
             android:textColor="@android:color/white" />
 
     </FrameLayout>
+    -->
 </LinearLayout>

@@ -10,6 +10,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Geocoder;
@@ -17,6 +18,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.nfc.Tag;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -98,17 +100,14 @@ public class MainActivity extends AppCompatActivity {
     int permsRequestCode;
     FrameLayout FrameLayoutBottom;
     TextView bottomSheetTextView;
+    TextView bottomSheetTextViewSubtitle;
     FloatingActionButton NewMarkerButton;
     SharedPreferences prefs;
     String url;
+    String tag = "LogDebug";
 
     int[] mDrawables = {
             R.drawable.cheese_3,
-            R.drawable.cheese_3,
-            R.drawable.cheese_3,
-            R.drawable.cheese_3,
-            R.drawable.cheese_3,
-            R.drawable.cheese_3
     };
 
     @Override
@@ -222,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
         });
         AppBarLayout mergedAppBarLayout = (AppBarLayout) findViewById(R.id.merged_appbarlayout);
         MergedAppBarLayoutBehavior mergedAppBarLayoutBehavior = MergedAppBarLayoutBehavior.from(mergedAppBarLayout);
-        mergedAppBarLayoutBehavior.setToolbarTitle("Title Dummy");
+        mergedAppBarLayoutBehavior.setToolbarTitle("Информация о месте");
         mergedAppBarLayoutBehavior.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -253,12 +252,12 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean longPressHelper(GeoPoint p) {
-
                 ItemPagerAdapter adapter = new ItemPagerAdapter(MainActivity.this,mDrawables);
                 ViewPager viewPager = (ViewPager) findViewById(R.id.pager);
                 viewPager.setAdapter(adapter);
                 behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
                 url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
+                Log.d(tag, "Sending request to: " + url);
                 new GetUrlContentTask().execute(url);
                 Marker startMarker = new Marker(map);
                 startMarker.setPosition(p);
@@ -435,27 +434,33 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    public class GetUrlContentTask extends AsyncTask<String, Void, String> {
+    public class GetUrlContentTask extends AsyncTask<String, Void, List<XMLParser.Entry>> {
 
         @Override
-        protected String doInBackground(String... urls) {
+        protected List<XMLParser.Entry> doInBackground(String... urls) {
             try {
                 return loadXmlFromNetwork(urls[0]);
             } catch (XmlPullParserException e) {
                 Log.d("LogDebug", e.getMessage());
-                return "connection_error";
+                List error = null;
+                error.add("connection_error");
+                error.add(e.getMessage());
+                return error;
             } catch (IOException e) {
-                return "xml_error";
+                List error = null;
+                error.add("xml error");
+                error.add(e.getMessage());
+                return error;
             }
         }
 
-        private String loadXmlFromNetwork(String urlString) throws XmlPullParserException, IOException {
+        private List<XMLParser.Entry> loadXmlFromNetwork(String urlString) throws XmlPullParserException, IOException {
             InputStream stream = null;
             // Instantiate the parser
             XMLParser stackOverflowXmlParser = new XMLParser();
             List<XMLParser.Entry> entries = null;
 
-            StringBuilder htmlString = new StringBuilder();
+            //StringBuilder htmlString = new StringBuilder();
             try {
                 stream = downloadUrl(urlString);
                 entries = stackOverflowXmlParser.parse(stream);
@@ -472,12 +477,15 @@ public class MainActivity extends AppCompatActivity {
             // This section processes the entries list to combine each entry with HTML markup.
             // Each entry is displayed in the UI as a link that optionally includes
             // a text summary.
-            for (XMLParser.Entry entry : entries) {
+            /*for (XMLParser.Entry entry : entries) {
                 htmlString.append(entry.city);
                 htmlString.append(entry.road);
                 htmlString.append(entry.house_number);
-            }
-            return htmlString.toString();
+            }*/
+
+            //return htmlString.toString();
+
+            return  entries;
         }
 
         // Given a string representation of a URL, sets up a connection and gets
@@ -505,11 +513,20 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(List<XMLParser.Entry> result) {
             // Displays the HTML string in the UI via a WebView
             bottomSheetTextView = (TextView) findViewById(R.id.bottom_sheet_title);
-            bottomSheetTextView.setText(result);
+            bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
+            try {
+                if(result.get(0).house_number!=null)
+                    bottomSheetTextView.setText(result.get(0).road + " " + result.get(0).house_number);
+                else
+                    bottomSheetTextView.setText(result.get(0).road);
+                if(result.get(0).city!=null)bottomSheetTextViewSubtitle.setText(result.get(0).city);
+            }catch (Exception e) {
+                bottomSheetTextView.setText("Невозможно загрузить адрес");
+                bottomSheetTextViewSubtitle.setText(result.toString());
+            }
+            }
         }
     }
-
-}
