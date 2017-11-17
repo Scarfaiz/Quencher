@@ -112,4 +112,22 @@
         android:paddingLeft="15dp"
         android:entries="@array/marker_range_spinner_items"/>
 
+    <TextView
+        android:id="@+id/marker_comments_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Комментарии"
+        android:paddingTop="20dp"
+        android:paddingLeft="15dp"/>
+
+    <EditText
+        android:id="@+id/marker_comments"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="textPersonName"
+        android:hint="Комментарии"
+        android:paddingTop="20dp"
+        android:paddingLeft="15dp"/>
+
 </LinearLayout>

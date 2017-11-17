@@ -1,8 +1,6 @@
 package com.scarfaiz.cluckinbell;
 
 import android.Manifest;
-import android.app.ActionBar;
-import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -10,15 +8,11 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
-import android.nfc.Tag;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -33,14 +27,11 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.util.Xml;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.support.v7.widget.Toolbar;
 
-import org.json.JSONObject;
 import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.events.MapEventsReceiver;
@@ -51,39 +42,16 @@ import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.views.overlay.Marker;
 import org.osmdroid.views.overlay.gestures.RotationGestureOverlay;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
-import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-
-import okhttp3.HttpUrl;
-import okhttp3.Request;
-import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -105,6 +73,9 @@ public class MainActivity extends AppCompatActivity {
     SharedPreferences prefs;
     String url;
     String tag = "LogDebug";
+    private String server_db_username = "user";
+    private String server_db_password = "J4UEQwk2";
+    //private String server_db_password = "";
 
     int[] mDrawables = {
             R.drawable.cheese_3,
@@ -114,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Context ctx = getApplicationContext();
-        prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs = this.getPreferences(Context.MODE_PRIVATE);
         Configuration.getInstance().load(ctx, prefs);
         Configuration.getInstance().setUserAgentValue("CB");
         setContentView(R.layout.activity_main);
@@ -126,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
         mapController = map.getController();
         mapController.setZoom(13);
         startPoint = new GeoPoint(prefs.getFloat("Latitude",59.93863f), prefs.getFloat("Longitude",30.31413f));
+        Log.d(tag,"Loaded Geoposition: " + String.valueOf( prefs.getFloat("Latitude", 59.93863f)) + "  " + String.valueOf( prefs.getFloat("Longitude", 30.31413f)));
         mapController.setCenter(startPoint);
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         //location marker overlay
@@ -270,6 +242,8 @@ public class MainActivity extends AppCompatActivity {
         MapEventsOverlay OverlayEvents = new MapEventsOverlay(getBaseContext(), mReceive);
         map.getOverlays().add(OverlayEvents);
 
+        new ServerSigninActivity().execute(server_db_username,server_db_password);
+
     }
     public void onResume() {
         super.onResume();
@@ -298,12 +272,14 @@ public class MainActivity extends AppCompatActivity {
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
             GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
             mapController.animateTo(locGeoPoint);
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            prefs = this.getPreferences(Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
             float Latitude = (float)loc.getLatitude();
-            prefs.edit().putFloat("Latitude", Latitude);
+            editor.putFloat("Latitude", Latitude);
             float Longitude = (float)loc.getLongitude();
-            prefs.edit().putFloat("Latitude", Longitude);
-            prefs.edit().apply();
+            editor.putFloat("Latitude", Longitude);
+            Log.d(tag,"Last saved Geoposition: " + String.valueOf( prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf( prefs.getFloat("Longitude", Longitude)));
+            editor.commit();
         } else GetLocPermission();
 
     }
@@ -320,6 +296,14 @@ public class MainActivity extends AppCompatActivity {
                 mapController.setCenter(locGeoPoint);
                 mapController.zoomTo(17);
                 map.invalidate();
+                prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = prefs.edit();
+                float Latitude = (float)location.getLatitude();
+                editor.putFloat("Latitude", Latitude);
+                float Longitude = (float)location.getLongitude();
+                editor.putFloat("Latitude", Longitude);
+                Log.d(tag,"Last saved Geoposition: " + String.valueOf( prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf( prefs.getFloat("Longitude", Longitude)));
+                editor.commit();
                 geodata_updated = true;
             }
         }
@@ -529,4 +513,7 @@ public class MainActivity extends AppCompatActivity {
             }
             }
         }
+
+
+
     }
