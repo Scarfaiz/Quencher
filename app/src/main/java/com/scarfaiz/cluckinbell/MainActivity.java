@@ -242,8 +242,6 @@ public class MainActivity extends AppCompatActivity {
         MapEventsOverlay OverlayEvents = new MapEventsOverlay(getBaseContext(), mReceive);
         map.getOverlays().add(OverlayEvents);
 
-        new ServerSigninActivity().execute(server_db_username,server_db_password);
-
     }
     public void onResume() {
         super.onResume();
