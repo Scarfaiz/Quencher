@@ -1,6 +1,7 @@
 package com.scarfaiz.cluckinbell;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -14,6 +15,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -52,6 +54,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -73,9 +80,12 @@ public class MainActivity extends AppCompatActivity {
     SharedPreferences prefs;
     String url;
     String tag = "LogDebug";
-    private String server_db_username = "user";
-    private String server_db_password = "J4UEQwk2";
+    private GeoPoint marker_geopostition;
     //private String server_db_password = "";
+
+    private static String server_address;
+    private static String server_db;
+    private static String db_table;
 
     int[] mDrawables = {
             R.drawable.cheese_3,
@@ -122,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
         mRotationGestureOverlay.setEnabled(true);
         map.getOverlays().add(mRotationGestureOverlay);
         //asking for location
-
+        marker_geopostition = null;
         int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
@@ -156,6 +166,10 @@ public class MainActivity extends AppCompatActivity {
         /**
          * If we want to listen for states callback
          */
+
+        server_address = "http://178.162.41.115/get_entry_details.php";
+        server_db = "cb_database";
+        db_table = "marker_data";
         CoordinatorLayout coordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinatorlayout);
         View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
         final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
@@ -210,7 +224,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(MainActivity.this, NewMarkerActivity.class);
-                startActivity(intent);
+                try{
+                    intent.putExtra("latitude", marker_geopostition.getLatitude());
+                    intent.putExtra("longitude", marker_geopostition.getLongitude());
+                    startActivity(intent);}
+                catch (NullPointerException e) {
+                    Log.d(tag, "A failure accured while creating new marker:" + e.getMessage());
+                }
             }
         });
 
@@ -230,18 +250,28 @@ public class MainActivity extends AppCompatActivity {
                 behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
                 url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
                 Log.d(tag, "Sending request to: " + url);
-                new GetUrlContentTask().execute(url);
+                executeAsyncTask(new GetUrlContentTask(), url);
+                //executeAsyncTask(new GetEntryDetails(String.valueOf(1)));
+                executeAsyncTask(new GetEntryData(server_address,server_db,db_table, 1));
                 Marker startMarker = new Marker(map);
                 startMarker.setPosition(p);
                 startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
                 map.getOverlays().add(startMarker);
                 map.invalidate();
+                marker_geopostition = p;
                 return false;
             }
         };
         MapEventsOverlay OverlayEvents = new MapEventsOverlay(getBaseContext(), mReceive);
         map.getOverlays().add(OverlayEvents);
 
+    }
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB) // API 11
+    public static <T> void executeAsyncTask(AsyncTask<T, ?, ?> asyncTask, T... params) {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+            asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, params);
+        else
+            asyncTask.execute(params);
     }
     public void onResume() {
         super.onResume();
@@ -499,6 +529,7 @@ public class MainActivity extends AppCompatActivity {
             // Displays the HTML string in the UI via a WebView
             bottomSheetTextView = (TextView) findViewById(R.id.bottom_sheet_title);
             bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
+
             try {
                 if(result.get(0).house_number!=null)
                     bottomSheetTextView.setText(result.get(0).road + " " + result.get(0).house_number);
@@ -511,7 +542,4 @@ public class MainActivity extends AppCompatActivity {
             }
             }
         }
-
-
-
     }

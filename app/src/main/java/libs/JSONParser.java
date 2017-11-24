@@ -21,6 +21,7 @@ public class JSONParser {
     static InputStream is = null;
     static JSONObject jObj = null;
     static String json = "";
+    static String TAG = "LogDebug";
 
     // constructor
     public JSONParser() {
@@ -48,6 +49,7 @@ public class JSONParser {
                 DefaultHttpClient httpClient = new DefaultHttpClient();
                 String paramString = URLEncodedUtils.format(params, "utf-8");
                 url += "?" + paramString;
+                Log.d(TAG, "Result url for sending to the server: " + url);
                 HttpGet httpGet = new HttpGet(url);
 
                 HttpResponse httpResponse = httpClient.execute(httpGet);
@@ -68,19 +70,20 @@ public class JSONParser {
             StringBuilder sb = new StringBuilder();
             String line = null;
             while ((line = reader.readLine()) != null) {
+                Log.d(TAG, line);
                 sb.append(line + "\n");
             }
             is.close();
             json = sb.toString();
         } catch (Exception e) {
-            Log.e("Buffer Error", "Error converting result " + e.toString());
+            Log.d(TAG, "Error converting result " + e.toString());
         }
 
         // пытаемся распарсить строку в JSON объект
         try {
             jObj = new JSONObject(json);
         } catch (JSONException e) {
-            Log.e("JSON Parser", "Error parsing data " + e.toString());
+            Log.d(TAG, "Error parsing data " + e.toString());
         }
 
         // возвращаем JSON строку
