@@ -32,7 +32,7 @@ class NewEntryActivity extends AsyncTask<String, String, String> {
         @Override
         protected String doInBackground(String[] args){
             // получаем JSON объект
-            Log.d(TAG,"Creating new entry to " + server_db + ":" + db_table);
+            Log.d(TAG,"Creating new entry to " + server_db + ": " + db_table);
             JSONObject json = jsonParser.makeHttpRequest(server_address, "GET", new_entry_data);
             try {
                 Log.d(TAG, "JSON response: " + json.toString());
