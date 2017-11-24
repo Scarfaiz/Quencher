@@ -44,12 +44,12 @@ class GetEntryData extends AsyncTask<String, String, String> {
         jsonParser = new JSONParser();
         int success;
             // Список параметров
-            entry_data = new ArrayList<NameValuePair>();
-            entry_data.add(new BasicNameValuePair("id", String.valueOf(id)));
+        entry_data = new ArrayList<NameValuePair>();
+        entry_data.add(new BasicNameValuePair("id", String.valueOf(id)));
             Log.d(TAG, "server address: " + server_address + "   enrty data: " + entry_data.toString());
             JSONObject json = jsonParser.makeHttpRequest(server_address, "GET", entry_data);
             try {
-            Log.d(TAG, json.toString());
+            //Log.d(TAG, json.toString());
 
             success = json.getInt(TAG_SUCCESS);
             if (success == 1) {

@@ -80,8 +80,8 @@ public class NewMarkerActivity extends AppCompatActivity {
         marker_data.add(new BasicNameValuePair("title", marker_name.getText().toString()));
         marker_data.add(new BasicNameValuePair("address", marker_address.getText().toString()));
         //marker_data.add(new BasicNameValuePair("image", marker_photos_view.getDrawable().toString()));
-        marker_data.add(new BasicNameValuePair("working_hours", marker_o_h_spinner.getSelectedItem().toString()));
-        marker_data.add(new BasicNameValuePair("product_range", marker_range_spinner.getSelectedItem().toString()));
+        marker_data.add(new BasicNameValuePair("working_hours", String.valueOf(marker_o_h_spinner.getSelectedItemPosition())));
+        marker_data.add(new BasicNameValuePair("product_range", String.valueOf(marker_range_spinner.getSelectedItemPosition())));
         marker_data.add(new BasicNameValuePair("comments", marker_comments.getText().toString()));
         marker_data.add(new BasicNameValuePair("latitude", latitude.toString()));
         marker_data.add(new BasicNameValuePair("longitude", longitude.toString()));

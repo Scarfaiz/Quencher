@@ -67,14 +67,15 @@ public class JSONParser {
 
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(is, "iso-8859-1"), 8);
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = null;
+            sb = new StringBuilder();
             String line = null;
             while ((line = reader.readLine()) != null) {
-                Log.d(TAG, line);
                 sb.append(line + "\n");
             }
             is.close();
             json = sb.toString();
+            Log.d(TAG, json);
         } catch (Exception e) {
             Log.d(TAG, "Error converting result " + e.toString());
         }

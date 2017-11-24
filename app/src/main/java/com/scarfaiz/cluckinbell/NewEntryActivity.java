@@ -16,15 +16,15 @@ class NewEntryActivity extends AsyncTask<String, String, String> {
     private static String server_address;
     private static String server_db;
     private static String db_table;
-    private static List<NameValuePair> entry_data;
+    private static List<NameValuePair> new_entry_data = null;
 
     private static final String TAG_SUCCESS = "success";
 
-    public  NewEntryActivity(String server_address, String server_db, String db_table, List<NameValuePair> entry_data) {
+    public  NewEntryActivity(String server_address, String server_db, String db_table, List<NameValuePair> new_entry_data) {
         this.server_address = server_address;
         this.server_db = server_db;
         this.db_table = db_table;
-        this.entry_data = entry_data;
+        this.new_entry_data = new_entry_data;
     }
 
 
@@ -33,7 +33,7 @@ class NewEntryActivity extends AsyncTask<String, String, String> {
         protected String doInBackground(String[] args){
             // получаем JSON объект
             Log.d(TAG,"Creating new entry to " + server_db + ":" + db_table);
-            JSONObject json = jsonParser.makeHttpRequest(server_address, "GET", entry_data);
+            JSONObject json = jsonParser.makeHttpRequest(server_address, "GET", new_entry_data);
             try {
                 Log.d(TAG, "JSON response: " + json.toString());
                 try {
