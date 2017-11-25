@@ -17,10 +17,11 @@ import java.util.List;
  * Created by USER on 19.11.2017.
  */
 
-class GetEntryData extends AsyncTask<String, String, String> {
+class GetEntryData extends AsyncTask<String, List<String>, List<String>> {
 
     private static JSONParser jsonParser;
     private List<NameValuePair> entry_data;
+    private List<String> marker_data;
 
     private static String server_address;
     private static String server_db;
@@ -38,13 +39,14 @@ class GetEntryData extends AsyncTask<String, String, String> {
     }
 
     @Override
-    protected String doInBackground(String[] params) {
+    protected List<String> doInBackground(String[] params) {
 
         Log.d(TAG, "Sending JSON request");
         jsonParser = new JSONParser();
         int success;
             // Список параметров
         entry_data = new ArrayList<NameValuePair>();
+        marker_data = new ArrayList<String>();
         entry_data.add(new BasicNameValuePair("id", String.valueOf(id)));
             Log.d(TAG, "server address: " + server_address + "   enrty data: " + entry_data.toString());
             JSONObject json = jsonParser.makeHttpRequest(server_address, "GET", entry_data);
@@ -53,22 +55,34 @@ class GetEntryData extends AsyncTask<String, String, String> {
 
             success = json.getInt(TAG_SUCCESS);
             if (success == 1) {
-                JSONArray productObj = json.getJSONArray(db_table);
-                JSONObject entry = productObj.getJSONObject(0);
-                return entry.toString();
+                /*JSONArray productObj = json.getJSONArray(marker_data);
+                JSONObject entry = productObj.getJSONObject(0);*/
+                marker_data.add(0, json.getString("title"));
+                marker_data.add(1, json.getString("address"));
+                marker_data.add(2, json.getString("image"));
+                marker_data.add(3, json.getString("working_hours"));
+                marker_data.add(4, json.getString("product_range"));
+                marker_data.add(5, json.getString("confirmation_status"));
+                marker_data.add(6, json.getString("comments"));
+                marker_data.add(7, json.getString("latitude"));
+                marker_data.add(8, json.getString("longitude"));
+                return marker_data;
             } else {
                 // продукт с pid не найден
                 return null;
             }
         } catch (NullPointerException e) {
-            return e.getMessage();
+                marker_data.add(e.getMessage());
+            return marker_data;
         }catch (JSONException e){
-                return e.getMessage();
+                marker_data.add(e.getMessage());
+                return marker_data;
             }
     }
     @Override
-    protected void onPostExecute(String result) {
+    protected void onPostExecute(List<String> result) {
         // закрываем диалог прогресс
+
         Log.d(TAG, "Entry data was written with the result: " + result);
     }
 }

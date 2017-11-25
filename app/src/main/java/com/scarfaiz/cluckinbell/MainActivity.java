@@ -31,6 +31,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -72,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
     BitmapFactory.Options person_options;
     GeoPoint startPoint;
     FloatingActionButton LocButton;
+    FloatingActionButton SearchButton;
     int permsRequestCode;
     FrameLayout FrameLayoutBottom;
     TextView bottomSheetTextView;
@@ -81,6 +84,8 @@ public class MainActivity extends AppCompatActivity {
     String url;
     String tag = "LogDebug";
     private GeoPoint marker_geopostition;
+    private LinearLayout bottom_sheet_elements_layout;
+    private FrameLayout bottom_sheet_comments_layout;
     //private String server_db_password = "";
 
     private static String server_address;
@@ -163,6 +168,21 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        SearchButton = (FloatingActionButton) findViewById(R.id.searchButton);
+        SearchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
+                executeAsyncTask(new SearchForMarkers(String.valueOf(prefs.getFloat("Latitude",59.93863f)), String.valueOf(prefs.getFloat("Longitude",30.31413f)), prefs.getString("city", "Санкт-Петербург"), map));
+
+                /*Marker startMarker = new Marker(map);
+                startMarker.setPosition(p);
+                startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+                map.getOverlays().add(startMarker);
+                map.invalidate();*/
+            }
+        });
+
         /**
          * If we want to listen for states callback
          */
@@ -170,6 +190,10 @@ public class MainActivity extends AppCompatActivity {
         server_address = "http://178.162.41.115/get_entry_details.php";
         server_db = "cb_database";
         db_table = "marker_data";
+
+        bottom_sheet_elements_layout = (LinearLayout)findViewById(R.id.bottom_sheet_elemets_layout);
+        bottom_sheet_comments_layout = (FrameLayout) findViewById(R.id.bottom_sheet_comments_layout);
+
         CoordinatorLayout coordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinatorlayout);
         View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
         final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
@@ -225,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Intent intent = new Intent(MainActivity.this, NewMarkerActivity.class);
                 try{
+                    intent.putExtra("city", bottomSheetTextViewSubtitle.getText());
                     intent.putExtra("latitude", marker_geopostition.getLatitude());
                     intent.putExtra("longitude", marker_geopostition.getLongitude());
                     startActivity(intent);}
@@ -250,8 +275,8 @@ public class MainActivity extends AppCompatActivity {
                 behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
                 url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
                 Log.d(tag, "Sending request to: " + url);
-                executeAsyncTask(new GetUrlContentTask(), url);
-                //executeAsyncTask(new GetEntryDetails(String.valueOf(1)));
+                prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
+                executeAsyncTask(new GetUrlContentTask(prefs), url);
                 executeAsyncTask(new GetEntryData(server_address,server_db,db_table, 1));
                 Marker startMarker = new Marker(map);
                 startMarker.setPosition(p);
@@ -259,6 +284,11 @@ public class MainActivity extends AppCompatActivity {
                 map.getOverlays().add(startMarker);
                 map.invalidate();
                 marker_geopostition = p;
+                Log.d(tag, "Marker geoposition: " + String.valueOf(p.getLatitude() - prefs.getFloat("Latitude",59.93863f)) + ", " + String.valueOf(p.getLongitude() - prefs.getFloat("Longitude",30.31413f)));
+                TextView elements_textView = new TextView(MainActivity.this);
+                elements_textView.setText("По этой точке еще нет информации о доступных магазинах. Вы можете добавить новое место, нажав на кнопку.");
+                elements_textView.setLayoutParams(bottom_sheet_elements_layout.getLayoutParams());
+                bottom_sheet_elements_layout.addView(elements_textView);
                 return false;
             }
         };
@@ -305,7 +335,7 @@ public class MainActivity extends AppCompatActivity {
             float Latitude = (float)loc.getLatitude();
             editor.putFloat("Latitude", Latitude);
             float Longitude = (float)loc.getLongitude();
-            editor.putFloat("Latitude", Longitude);
+            editor.putFloat("Longitude", Longitude);
             Log.d(tag,"Last saved Geoposition: " + String.valueOf( prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf( prefs.getFloat("Longitude", Longitude)));
             editor.commit();
         } else GetLocPermission();
@@ -329,7 +359,7 @@ public class MainActivity extends AppCompatActivity {
                 float Latitude = (float)location.getLatitude();
                 editor.putFloat("Latitude", Latitude);
                 float Longitude = (float)location.getLongitude();
-                editor.putFloat("Latitude", Longitude);
+                editor.putFloat("Longitude", Longitude);
                 Log.d(tag,"Last saved Geoposition: " + String.valueOf( prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf( prefs.getFloat("Longitude", Longitude)));
                 editor.commit();
                 geodata_updated = true;
@@ -448,6 +478,8 @@ public class MainActivity extends AppCompatActivity {
 
     public class GetUrlContentTask extends AsyncTask<String, Void, List<XMLParser.Entry>> {
 
+        SharedPreferences prefs;
+
         @Override
         protected List<XMLParser.Entry> doInBackground(String... urls) {
             try {
@@ -464,6 +496,11 @@ public class MainActivity extends AppCompatActivity {
                 error.add(e.getMessage());
                 return error;
             }
+        }
+
+        public GetUrlContentTask (SharedPreferences prefs)
+        {
+            this.prefs = prefs;
         }
 
         private List<XMLParser.Entry> loadXmlFromNetwork(String urlString) throws XmlPullParserException, IOException {
@@ -535,7 +572,12 @@ public class MainActivity extends AppCompatActivity {
                     bottomSheetTextView.setText(result.get(0).road + " " + result.get(0).house_number);
                 else
                     bottomSheetTextView.setText(result.get(0).road);
-                if(result.get(0).city!=null)bottomSheetTextViewSubtitle.setText(result.get(0).city);
+                if(result.get(0).city!=null) {
+                    bottomSheetTextViewSubtitle.setText(result.get(0).city);
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putString("city", String.valueOf(result.get(0).city));
+                    editor.commit();
+                }
             }catch (Exception e) {
                 bottomSheetTextView.setText("Невозможно загрузить адрес");
                 bottomSheetTextViewSubtitle.setText(result.toString());

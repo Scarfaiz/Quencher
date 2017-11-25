@@ -30,6 +30,7 @@ public class NewMarkerActivity extends AppCompatActivity {
     public EditText marker_comments;
     private static Double latitude;
     private static Double longitude;
+    private static String city;
     private static List<NameValuePair> marker_data;
     private static String server_address;
     private static String server_db;
@@ -51,6 +52,7 @@ public class NewMarkerActivity extends AppCompatActivity {
         Bundle b = getIntent().getExtras();
         latitude = b.getDouble("latitude");
         longitude = b.getDouble("longitude");
+        city = b.getString("city");
 
         server_address = "http://178.162.41.115/add_entry.php";
         server_db = "cb_database";
@@ -79,6 +81,7 @@ public class NewMarkerActivity extends AppCompatActivity {
         marker_data = new ArrayList<NameValuePair>();
         marker_data.add(new BasicNameValuePair("title", marker_name.getText().toString()));
         marker_data.add(new BasicNameValuePair("address", marker_address.getText().toString()));
+        marker_data.add(new BasicNameValuePair("city", city));
         //marker_data.add(new BasicNameValuePair("image", marker_photos_view.getDrawable().toString()));
         marker_data.add(new BasicNameValuePair("working_hours", String.valueOf(marker_o_h_spinner.getSelectedItemPosition())));
         marker_data.add(new BasicNameValuePair("product_range", String.valueOf(marker_range_spinner.getSelectedItemPosition())));
