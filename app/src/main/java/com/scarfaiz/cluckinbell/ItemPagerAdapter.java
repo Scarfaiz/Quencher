@@ -1,6 +1,9 @@
 package com.scarfaiz.cluckinbell;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,7 +37,9 @@ public class ItemPagerAdapter extends android.support.v4.view.PagerAdapter {
     public Object instantiateItem(ViewGroup container, int position) {
         View itemView = mLayoutInflater.inflate(R.layout.pager_item, container, false);
         ImageView imageView = (ImageView) itemView.findViewById(R.id.imageView);
-        imageView.setImageResource(mItems[position]);
+        //imageView.setImageResource(mItems[position]);
+        Drawable transparentDrawable = new ColorDrawable(Color.TRANSPARENT);
+        imageView.setImageDrawable(transparentDrawable);
         container.addView(itemView);
         return itemView;
     }

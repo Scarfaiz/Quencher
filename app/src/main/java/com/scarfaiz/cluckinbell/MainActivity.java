@@ -9,6 +9,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
@@ -91,10 +93,11 @@ public class MainActivity extends AppCompatActivity {
     private static String server_address;
     private static String server_db;
     private static String db_table;
+    Drawable transparentDrawable;
 
-    int[] mDrawables = {
+    /*int[] mDrawables = {
             R.drawable.cheese_3,
-    };
+    };*/
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -191,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
         server_db = "cb_database";
         db_table = "marker_data";
 
-        bottom_sheet_elements_layout = (LinearLayout)findViewById(R.id.bottom_sheet_elemets_layout);
+        bottom_sheet_elements_layout = (LinearLayout)findViewById(R.id.bottom_sheet_elements_layout);
         bottom_sheet_comments_layout = (FrameLayout) findViewById(R.id.bottom_sheet_comments_layout);
 
         CoordinatorLayout coordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinatorlayout);
@@ -204,7 +207,15 @@ public class MainActivity extends AppCompatActivity {
                 switch (newState) {
                     case BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED:
                         Log.d("bottomsheet-", "STATE_COLLAPSED");
+                        int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
+                        if (permission == PermissionChecker.PERMISSION_GRANTED) {
+                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
+                            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
+                            Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                            updateLoc(lastLocation);
+                        }
                         LocButton.setVisibility(View.VISIBLE);
+                        SearchButton.setVisibility(View.VISIBLE);
                         break;
                     case BottomSheetBehaviorGoogleMapsLike.STATE_DRAGGING:
                         Log.d("bottomsheet-", "STATE_DRAGGING");
@@ -213,6 +224,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("bottomsheet-", "STATE_EXPANDED");
                         break;
                     case BottomSheetBehaviorGoogleMapsLike.STATE_ANCHOR_POINT:
+                        GeoPoint marker_geoposition_to_animate = new GeoPoint(marker_geopostition.getLatitude() - 0.0025, marker_geopostition.getLongitude());
+                        mapController.animateTo(marker_geoposition_to_animate);
                         Log.d("bottomsheet-", "STATE_ANCHOR_POINT");
                         break;
                     case BottomSheetBehaviorGoogleMapsLike.STATE_HIDDEN:
@@ -227,6 +240,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
                 LocButton.setVisibility(View.INVISIBLE);
+                SearchButton.setVisibility(View.INVISIBLE);
             }
         });
         AppBarLayout mergedAppBarLayout = (AppBarLayout) findViewById(R.id.merged_appbarlayout);
@@ -269,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean longPressHelper(GeoPoint p) {
-                ItemPagerAdapter adapter = new ItemPagerAdapter(MainActivity.this,mDrawables);
+                ItemPagerAdapter adapter = new ItemPagerAdapter(MainActivity.this, new int[] {0});
                 ViewPager viewPager = (ViewPager) findViewById(R.id.pager);
                 viewPager.setAdapter(adapter);
                 behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);

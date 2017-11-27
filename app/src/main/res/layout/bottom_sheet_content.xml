@@ -69,9 +69,10 @@
 
 
         <LinearLayout
-            android:id="@+id/bottom_sheet_elemets_layout"
+            android:id="@+id/bottom_sheet_elements_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
             android:layout_marginEnd="16dp"
             android:layout_marginStart="16dp"
             android:orientation="vertical">

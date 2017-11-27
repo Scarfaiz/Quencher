@@ -3,6 +3,7 @@ package com.scarfaiz.cluckinbell;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
+import android.widget.ArrayAdapter;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -26,6 +27,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -98,22 +100,44 @@ public class SearchForMarkers extends AsyncTask<String, List<String>, List<Strin
     @Override
     protected void onPostExecute(List<String> markers_found) {
         // закрываем диалог прогресс
-        Marker startMarker = new Marker(map);
 
         Double latitude;
         Double longitude;
         int id;
-
-        for(int i = 0; i< Integer.valueOf(markers_found.get(3)); i++) {
-            latitude = Double.valueOf(markers_found.get(1));
-            longitude = Double.valueOf(markers_found.get(2));
-            id = Integer.valueOf(markers_found.get(0));
+        String[] latitude_splited = markers_found.get(1).split("\\s+");
+        String[] longitude_splited = markers_found.get(2).split("\\s+");
+        String[] id_splited = markers_found.get(0).split("\\s+");
+        GenSet<Marker> startMarker = new GenSet<Marker>(Marker.class, id_splited.length);
+        for(int i = 0; i< Integer.valueOf(id_splited.length); i++) {
+            latitude = Double.valueOf(latitude_splited[i]);
+            longitude = Double.valueOf(longitude_splited[i]);
+            id = Integer.valueOf(id_splited[i]);
+            Log.d(TAG, "Split markers data info: " + latitude + " " + longitude + " " + id + " with array length: " + id_splited.length);
             GeoPoint p = new GeoPoint(latitude, longitude);
-            startMarker.setPosition(p);
-            startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-            map.getOverlays().add(startMarker);
+            startMarker.a[i] = new Marker(map);
+            startMarker.a[i].setPosition(p);
+            startMarker.a[i].setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+            startMarker.a[i].setTitle(String.valueOf(id));
+            map.getOverlays().add(startMarker.a[i]);
             map.invalidate();
         }
         Log.d(TAG, "Database was searched for entries with result: " + markers_found);
+    }
+
+    public class GenSet<E> {
+
+        private E[] a;
+
+        public GenSet(Class<E> c, int s) {
+            // Use Array native method to create array
+            // of a type only known at run time
+            @SuppressWarnings("unchecked")
+            final E[] a = (E[]) Array.newInstance(c, s);
+            this.a = a;
+        }
+
+        E get(int i) {
+            return a[i];
+        }
     }
 }

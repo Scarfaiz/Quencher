@@ -107,6 +107,7 @@ public class MergedAppBarLayoutBehavior extends AppBarLayout.ScrollingViewBehavi
         if(isDependencyYBelowAnchorPoint(parent, dependency)){
 
             childMoved = setToolbarVisible(false,child);
+            setFullBackGroundColor(android.R.color.transparent);
 
         }else if(isDependencyYBetweenAnchorPointAndToolbar(parent, child,dependency)){
 
@@ -156,7 +157,7 @@ public class MergedAppBarLayoutBehavior extends AppBarLayout.ScrollingViewBehavi
         mInitialY = child.getY();
 
         child.setVisibility(mVisible ? View.VISIBLE : View.INVISIBLE);
-//        setStatusBarBackgroundVisible(mVisible);
+        setStatusBarBackgroundVisible(mVisible);
 
         setFullBackGroundColor(mVisible && mCurrentTitleAlpha == 1 ? R.color.colorPrimary: android.R.color.transparent);
         setPartialBackGroundHeight(0);
