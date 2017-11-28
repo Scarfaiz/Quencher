@@ -65,22 +65,6 @@
         android:paddingLeft="15dp"/>
 
     <TextView
-        android:id="@+id/marker_photos_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Фотографии"
-        android:paddingTop="20dp"
-        android:paddingLeft="15dp"/>
-
-    <ImageView
-        android:id="@+id/marker_photos_view"
-        android:layout_width="136dp"
-        android:layout_height="109dp"
-        app:srcCompat="@android:drawable/ic_menu_add"
-        android:paddingTop="20dp"
-        android:paddingLeft="15dp"/>
-
-    <TextView
         android:id="@+id/marker_open_hours_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

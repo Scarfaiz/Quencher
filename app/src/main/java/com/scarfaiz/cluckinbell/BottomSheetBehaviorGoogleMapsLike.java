@@ -146,9 +146,6 @@ public class BottomSheetBehaviorGoogleMapsLike<V extends View> extends Coordinat
         setHideable(a.getBoolean(android.support.design.R.styleable.BottomSheetBehavior_Layout_behavior_hideable, false));
         a.recycle();
 
-        /**
-         * Getting the anchorPoint...
-         */
         mAnchorPoint = DEFAULT_ANCHOR_POINT;
         a = context.obtainStyledAttributes(attrs, R.styleable.CustomBottomSheetBehavior);
         if (attrs != null)

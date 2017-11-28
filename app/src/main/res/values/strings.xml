@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">XXX</string>
     <string-array name="marker_o_h_spinner_items">
-        <item>Круглосуточно</item>
+        <item>круглосуточно</item>
         <item>до 22:00</item>
     </string-array>
 

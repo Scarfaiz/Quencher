@@ -1,5 +1,6 @@
 package libs;
 
+import android.nfc.Tag;
 import android.util.Log;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -58,20 +59,24 @@ public class JSONParser {
             }
 
         } catch (UnsupportedEncodingException e) {
+            Log.d(TAG, "An error occurred: " + e.getMessage());
             e.printStackTrace();
         } catch (ClientProtocolException e) {
+            Log.d(TAG, "An error occurred: " + e.getMessage());
             e.printStackTrace();
         } catch (IOException e) {
+            Log.d(TAG, "An error occurred: " + e.getMessage());
             e.printStackTrace();
         }
 
         try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is, "iso-8859-1"), 8);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is, "utf-8"), 8);
             StringBuilder sb = null;
             sb = new StringBuilder();
             String line = null;
             while ((line = reader.readLine()) != null) {
-                sb.append(line + " \n");
+                sb.append(line + "\n");
+                Log.d(TAG, "Line appended " + line);
             }
             is.close();
             json = sb.toString();

@@ -10,22 +10,6 @@ import android.view.View;
 import java.lang.ref.WeakReference;
 
 /**
- ~ Licensed under the Apache License, Version 2.0 (the "License");
- ~ you may not use this file except in compliance with the License.
- ~ You may obtain a copy of the License at
- ~
- ~      http://www.apache.org/licenses/LICENSE-2.0
- ~
- ~ Unless required by applicable law or agreed to in writing, software
- ~ distributed under the License is distributed on an "AS IS" BASIS,
- ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- ~ See the License for the specific language governing permissions and
- ~ limitations under the License.
- ~
- ~ https://github.com/miguelhincapie/CustomBottomSheetBehavior
- */
-
-/**
  * This class will link the Backdrop element (that can be anything extending View) with a
  * NestedScrollView (the dependency). Whenever dependecy is moved, the backdrop will be moved too
  * behaving like parallax effect.
@@ -60,38 +44,17 @@ public class BackdropBottomSheetBehavior<V extends View> extends CoordinatorLayo
                 BottomSheetBehaviorGoogleMapsLike.from(dependency);
                 return true;
             }
-            catch (IllegalArgumentException e){}
+            catch (IllegalArgumentException ignored){}
         }
         return false;
     }
 
     @Override
     public boolean onDependentViewChanged(CoordinatorLayout parent, View child, View dependency) {
-        /**
-         * collapsedY and achorPointY are calculated every time looking for
-         * flexibility, in case that dependency's height, child's height or {@link BottomSheetBehaviorGoogleMapsLike#getPeekHeight()}'s
-         * value changes throught the time, I mean, you can have a {@link android.widget.ImageView}
-         * using images with different sizes and you don't want to resize them or so
-         */
         if (mBottomSheetBehaviorRef == null || mBottomSheetBehaviorRef.get() == null)
             getBottomSheetBehavior(parent);
-        /**
-         * mCollapsedY: Y position in where backdrop get hidden behind dependency.
-         * {@link BottomSheetBehaviorGoogleMapsLike#getPeekHeight()} and collapsedY are the same point on screen.
-         */
         int collapsedY = dependency.getHeight() - mBottomSheetBehaviorRef.get().getPeekHeight();
-        /**
-         * achorPointY: with top being Y=0, achorPointY defines the point in Y where could
-         * happen 2 things:
-         * The backdrop should be moved behind dependency view (when {@link #mCurrentChildY} got
-         * positive values) or the dependency view overlaps the backdrop (when
-         * {@link #mCurrentChildY} got negative values)
-         */
         int achorPointY = child.getHeight();
-        /**
-         * lastCurrentChildY: Just to know if we need to return true or false at the end of this
-         * method.
-         */
         int lastCurrentChildY = mCurrentChildY;
 
         if((mCurrentChildY = (int) ((dependency.getY()-achorPointY) * collapsedY / (collapsedY-achorPointY))) <= 0)
@@ -117,7 +80,7 @@ public class BackdropBottomSheetBehavior<V extends View> extends CoordinatorLayo
                     mBottomSheetBehaviorRef = new WeakReference<>(temp);
                     break;
                 }
-                catch (IllegalArgumentException e){}
+                catch (IllegalArgumentException ignored){}
             }
         }
     }

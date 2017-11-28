@@ -26,7 +26,7 @@
                 android:id="@+id/bottom_sheet_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Адрес загружается..."
+                android:text="Информация загружается..."
                 android:textColor="@android:color/white"
                 android:textSize="19sp"/>
 
@@ -34,7 +34,7 @@
                 android:id="@+id/bottom_sheet_subtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Адрес загружается..."
+                android:text="Информация загружается..."
                 android:textColor="@android:color/white"
                 android:textSize="12sp"
                 android:layout_marginTop="5dp"/>
@@ -63,10 +63,10 @@
 
 
     <RelativeLayout
+        android:id="@+id/bottom_sheet_rel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/border_bottom">
-
 
         <LinearLayout
             android:id="@+id/bottom_sheet_elements_layout"
@@ -85,6 +85,7 @@
         android:id="@+id/bottom_sheet_comments_layout"
         android:layout_width="match_parent"
         android:layout_height="620dp"
+        android:layout_marginStart="16dp"
         android:layout_marginTop="40dp">
 
     </FrameLayout>

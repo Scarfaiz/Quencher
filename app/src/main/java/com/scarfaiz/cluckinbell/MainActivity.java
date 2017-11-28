@@ -1,17 +1,14 @@
 package com.scarfaiz.cluckinbell;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -34,6 +31,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,58 +44,81 @@ import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.views.overlay.Marker;
-import org.osmdroid.views.overlay.gestures.RotationGestureOverlay;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
-import org.xmlpull.v1.XmlPullParserException;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
-    LocationManager locationManager;
-    public static MapView map;
-    IMapController mapController;
+    private static MapView map;
     public boolean geodata_updated = false;
-    MyLocationNewOverlay oMapLocationOverlay;
-    Bitmap person_bitmap;
-    Drawable person_drawable;
-    BitmapFactory.Options person_options;
-    GeoPoint startPoint;
-    FloatingActionButton LocButton;
-    FloatingActionButton SearchButton;
-    int permsRequestCode;
-    FrameLayout FrameLayoutBottom;
-    TextView bottomSheetTextView;
-    TextView bottomSheetTextViewSubtitle;
-    FloatingActionButton NewMarkerButton;
-    SharedPreferences prefs;
-    String url;
-    String tag = "LogDebug";
-    private GeoPoint marker_geopostition;
+    private static LocationManager locationManager;
+    private static IMapController mapController;
+    private FloatingActionButton LocButton;
+    private FloatingActionButton SearchButton;
+    private static int permsRequestCode;
+    private TextView bottomSheetTextView;
+    private TextView bottomSheetTextViewSubtitle;
+    private static SharedPreferences prefs;
+    private static String url;
+    private static String tag = "LogDebug";
+    private static GeoPoint marker_geopostition;
     private LinearLayout bottom_sheet_elements_layout;
     private FrameLayout bottom_sheet_comments_layout;
-    //private String server_db_password = "";
+    private RelativeLayout bottom_sheet_rel;
 
-    private static String server_address;
-    private static String server_db;
-    private static String db_table;
-    Drawable transparentDrawable;
+    private LocationListener myLocationListener
+            = new LocationListener() {
 
-    /*int[] mDrawables = {
-            R.drawable.cheese_3,
-    };*/
+        @Override
+        public void onLocationChanged(Location location) {
+            // TODO Auto-generated method stub
+            if (!geodata_updated) {
+                GeoPoint locGeoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
+                mapController.setCenter(locGeoPoint);
+                mapController.zoomTo(17);
+                map.invalidate();
+                prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = prefs.edit();
+                float Latitude = (float) location.getLatitude();
+                editor.putFloat("Latitude", Latitude);
+                float Longitude = (float) location.getLongitude();
+                editor.putFloat("Longitude", Longitude);
+                Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf(prefs.getFloat("Longitude", Longitude)));
+                editor.apply();
+                geodata_updated = true;
+            }
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            // TODO Auto-generated method stub
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            // TODO Auto-generated method stub
+
+
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            // TODO Auto-generated method stub
+
+        }
+
+    };
+
+    @SafeVarargs
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB) // API 11
+    public static <T> void executeAsyncTask(AsyncTask<T, ?, ?> asyncTask, T... params) {
+        asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, params);
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -109,20 +130,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         permsRequestCode = 1;
         GetLocPermission();
-        map = (MapView) findViewById(R.id.map);
+        map =  findViewById(R.id.map);
         map.setTileSource(TileSourceFactory.MAPNIK);
         map.setMultiTouchControls(true);
         mapController = map.getController();
         mapController.setZoom(13);
-        startPoint = new GeoPoint(prefs.getFloat("Latitude",59.93863f), prefs.getFloat("Longitude",30.31413f));
-        Log.d(tag,"Loaded Geoposition: " + String.valueOf( prefs.getFloat("Latitude", 59.93863f)) + "  " + String.valueOf( prefs.getFloat("Longitude", 30.31413f)));
+        GeoPoint startPoint = new GeoPoint(prefs.getFloat("Latitude", 59.93863f), prefs.getFloat("Longitude", 30.31413f));
+        Log.d(tag, "Loaded Geoposition: " + String.valueOf(prefs.getFloat("Latitude", 59.93863f)) + "  " + String.valueOf(prefs.getFloat("Longitude", 30.31413f)));
         mapController.setCenter(startPoint);
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        //location marker overlay
+        assert locationManager != null;
         locationManager.removeUpdates(myLocationListener);
-        oMapLocationOverlay = new MyLocationNewOverlay(map);
+        MyLocationNewOverlay oMapLocationOverlay = new MyLocationNewOverlay(map);
         oMapLocationOverlay.enableMyLocation();
-        //oMapLocationOverlay.enableFollowLocation();
         oMapLocationOverlay.setDrawAccuracyEnabled(true);
         oMapLocationOverlay.setDirectionArrow(BitmapFactory.decodeResource(getResources(), R.drawable.direction_arrow),
                 BitmapFactory.decodeResource(getResources(), R.drawable.direction_arrow));
@@ -135,11 +155,6 @@ public class MainActivity extends AppCompatActivity {
         oMapLocationOverlay.setPersonIcon(person_bitmap);
         if (oMapLocationOverlay.isEnabled())
             Toast.makeText(getBaseContext(),"Enabled", Toast.LENGTH_LONG).show();*/
-        //rotation
-        RotationGestureOverlay mRotationGestureOverlay = new RotationGestureOverlay(ctx, map);
-        mRotationGestureOverlay.setEnabled(true);
-        map.getOverlays().add(mRotationGestureOverlay);
-        //asking for location
         marker_geopostition = null;
         int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
@@ -150,8 +165,14 @@ public class MainActivity extends AppCompatActivity {
             GetLocPermission();
         }
 
+
+        CoordinatorLayout coordinatorLayout = findViewById(R.id.coordinatorlayout);
+        View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
+        final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
+        behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_HIDDEN);
+
         //setting listener for locButton
-        LocButton = (FloatingActionButton) findViewById(R.id.locButton);
+        LocButton = findViewById(R.id.locButton);
         LocButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -163,44 +184,96 @@ public class MainActivity extends AppCompatActivity {
                     updateLoc(lastLocation);
                     if (mapController.zoomIn())
                         mapController.zoomOut();
-                    return;
                 } else {
                     GetLocPermission();
-                    return;
                 }
             }
         });
 
-        SearchButton = (FloatingActionButton) findViewById(R.id.searchButton);
+        bottomSheetTextView =  bottomSheet.findViewById(R.id.bottom_sheet_title);
+        bottomSheetTextViewSubtitle =  bottomSheet.findViewById(R.id.bottom_sheet_subtitle);
+        bottom_sheet_elements_layout = findViewById(R.id.bottom_sheet_elements_layout);
+        bottom_sheet_comments_layout = findViewById(R.id.bottom_sheet_comments_layout);
+        bottom_sheet_rel = findViewById(R.id.bottom_sheet_rel);
+
+        SearchButton = findViewById(R.id.searchButton);
         SearchButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
-                executeAsyncTask(new SearchForMarkers(String.valueOf(prefs.getFloat("Latitude",59.93863f)), String.valueOf(prefs.getFloat("Longitude",30.31413f)), prefs.getString("city", "Санкт-Петербург"), map));
+                                            @Override
+                                            public void onClick(View view) {
+                                                prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
+                                                executeAsyncTask(new SearchForMarkersTask(String.valueOf(prefs.getFloat("Latitude", 59.93863f)), String.valueOf(prefs.getFloat("Longitude", 30.31413f)), prefs.getString("city", "Санкт-Петербург"),
+                                                new SearchForMarkersTask.AsyncResponse() {
 
-                /*Marker startMarker = new Marker(map);
-                startMarker.setPosition(p);
-                startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-                map.getOverlays().add(startMarker);
-                map.invalidate();*/
-            }
-        });
 
-        /**
-         * If we want to listen for states callback
-         */
+                                                    @Override
+                                                    public void processFinish(List<String> output) {
+                                                        Double latitude;
+                                                        Double longitude;
+                                                        int id;
+                                                        String[] latitude_split = output.get(1).split("\\s+");
+                                                        String[] longitude_split = output.get(2).split("\\s+");
+                                                        String[] id_split = output.get(0).split("\\s+");
+                                                        final SearchForMarkersTask.GenSet<Marker> startMarker = new SearchForMarkersTask.GenSet<>(Marker.class, id_split.length);
+                                                        final String req_server_address = "http://178.162.41.115/get_entry_details.php";
+                                                        for (int i = 0; i < id_split.length; i++) {
+                                                            latitude = Double.valueOf(latitude_split[i]);
+                                                            longitude = Double.valueOf(longitude_split[i]);
+                                                            id = Integer.valueOf(id_split[i]);
+                                                            Log.d(tag, "Split markers data info: " + latitude + " " + longitude + " " + id + " with array length: " + id_split.length);
+                                                            GeoPoint p = new GeoPoint(latitude, longitude);
+                                                            startMarker.a[i] = new Marker(map);
+                                                            startMarker.a[i].setPosition(p);
+                                                            startMarker.a[i].setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+                                                            startMarker.a[i].setTitle(String.valueOf(id));
+                                                            final int final_i = i;
+                                                            map.getOverlays().add(startMarker.a[i]);
+                                                            map.invalidate();
+                                                            startMarker.a[i].setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
+                                                                @Override
+                                                                public boolean onMarkerClick(Marker item, MapView arg1) {
+                                                                    ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
+                                                                    bottom_sheet_pb.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+                                                                    bottom_sheet_rel.addView(bottom_sheet_pb);
+                                                                    executeAsyncTask(new GetEntryDataTask(req_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), new GetEntryDataTask.AsyncResponse() {
 
-        server_address = "http://178.162.41.115/get_entry_details.php";
-        server_db = "cb_database";
-        db_table = "marker_data";
-
-        bottom_sheet_elements_layout = (LinearLayout)findViewById(R.id.bottom_sheet_elements_layout);
-        bottom_sheet_comments_layout = (FrameLayout) findViewById(R.id.bottom_sheet_comments_layout);
-
-        CoordinatorLayout coordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinatorlayout);
-        View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
-        final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
-        behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_HIDDEN);
+                                                                        @Override
+                                                                        public void processFinish(List<String> output) {
+                                                                            marker_geopostition = new GeoPoint(Double.valueOf(output.get(6)), Double.valueOf(output.get(7)));
+                                                                            bottom_sheet_rel.removeAllViews();
+                                                                            bottom_sheet_elements_layout.removeAllViews();
+                                                                            behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
+                                                                            bottomSheetTextView.setText(output.get(0));
+                                                                            bottomSheetTextViewSubtitle.setText(output.get(1));
+                                                                            TextView wh_textView = new TextView(MainActivity.this);
+                                                                            TextView r_textView = new TextView(MainActivity.this);
+                                                                            if(Integer.valueOf(output.get(2)) == 1)
+                                                                                wh_textView.setText("Магазин работает до 22:00");
+                                                                                    else
+                                                                                wh_textView.setText("Магазин работает круглосуточно");
+                                                                            if(Integer.valueOf(output.get(3)) == 1)
+                                                                                r_textView.setText("В продаже имеются только слабоалкогольные напитки");
+                                                                            else
+                                                                                r_textView.setText("Широкий ассортимент");
+                                                                            wh_textView.setLayoutParams(bottom_sheet_elements_layout.getLayoutParams());
+                                                                            r_textView.setLayoutParams(bottom_sheet_elements_layout.getLayoutParams());
+                                                                            bottom_sheet_elements_layout.addView(wh_textView);
+                                                                            bottom_sheet_elements_layout.addView(r_textView);
+                                                                            bottom_sheet_comments_layout.removeAllViews();
+                                                                            TextView comments_textview = new TextView(MainActivity.this);
+                                                                            if (output.get(5) != null)
+                                                                                comments_textview.setText(output.get(5));
+                                                                            comments_textview.setLayoutParams(bottom_sheet_comments_layout.getLayoutParams());
+                                                                            bottom_sheet_comments_layout.addView(comments_textview);
+                                                                        }
+                                                                    }));
+                                                                    return true;
+                                                                }
+                                                            });
+                                                        }
+                                                    }
+                                                }));
+                                            }
+                                        });
         behavior.addBottomSheetCallback(new BottomSheetBehaviorGoogleMapsLike.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
@@ -234,6 +307,8 @@ public class MainActivity extends AppCompatActivity {
                     default:
                         Log.d("bottomsheet-", "STATE_SETTLING");
                         break;
+                    case BottomSheetBehaviorGoogleMapsLike.STATE_SETTLING:
+                        break;
                 }
             }
 
@@ -243,7 +318,7 @@ public class MainActivity extends AppCompatActivity {
                 SearchButton.setVisibility(View.INVISIBLE);
             }
         });
-        AppBarLayout mergedAppBarLayout = (AppBarLayout) findViewById(R.id.merged_appbarlayout);
+        AppBarLayout mergedAppBarLayout = findViewById(R.id.merged_appbarlayout);
         MergedAppBarLayoutBehavior mergedAppBarLayoutBehavior = MergedAppBarLayoutBehavior.from(mergedAppBarLayout);
         mergedAppBarLayoutBehavior.setToolbarTitle("Информация о месте");
         mergedAppBarLayoutBehavior.setNavigationOnClickListener(new View.OnClickListener() {
@@ -252,22 +327,19 @@ public class MainActivity extends AppCompatActivity {
                 behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
             }
         });
+        FrameLayout frameLayoutBottom = findViewById(R.id.dummy_framelayout_replacing_map);
+        FloatingActionButton newMarkerButton = findViewById(R.id.new_marker_button);
 
-        bottomSheetTextView = (TextView) bottomSheet.findViewById(R.id.bottom_sheet_title);
-        FrameLayoutBottom = (FrameLayout)findViewById(R.id.dummy_framelayout_replacing_map);
-
-        NewMarkerButton = (FloatingActionButton) findViewById(R.id.new_marker_button);
-
-        NewMarkerButton.setOnClickListener(new View.OnClickListener() {
+        newMarkerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(MainActivity.this, NewMarkerActivity.class);
-                try{
+                try {
                     intent.putExtra("city", bottomSheetTextViewSubtitle.getText());
                     intent.putExtra("latitude", marker_geopostition.getLatitude());
                     intent.putExtra("longitude", marker_geopostition.getLongitude());
-                    startActivity(intent);}
-                catch (NullPointerException e) {
+                    startActivity(intent);
+                } catch (NullPointerException e) {
                     Log.d(tag, "A failure accured while creating new marker:" + e.getMessage());
                 }
             }
@@ -283,22 +355,50 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean longPressHelper(GeoPoint p) {
-                ItemPagerAdapter adapter = new ItemPagerAdapter(MainActivity.this, new int[] {0});
-                ViewPager viewPager = (ViewPager) findViewById(R.id.pager);
+                ItemPagerAdapter adapter = new ItemPagerAdapter(MainActivity.this, new int[]{0});
+                ViewPager viewPager = findViewById(R.id.pager);
                 viewPager.setAdapter(adapter);
                 behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
+                ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
+                bottom_sheet_pb.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+                bottom_sheet_rel.addView(bottom_sheet_pb);
                 url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
                 Log.d(tag, "Sending request to: " + url);
                 prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
-                executeAsyncTask(new GetUrlContentTask(prefs), url);
-                executeAsyncTask(new GetEntryData(server_address,server_db,db_table, 1));
+                bottomSheetTextView = findViewById(R.id.bottom_sheet_title);
+                bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
+                executeAsyncTask(new GetUrlContentTask(prefs, url, new GetUrlContentTask.AsyncResponse(){
+
+                            @SuppressLint("SetTextI18n")
+                            @Override
+                            public void processFinish(List<XMLParser.Entry> output){
+                                bottom_sheet_rel.removeAllViews();
+                                try {
+                                    if (output.get(0).house_number != null)
+                                        bottomSheetTextView.setText(output.get(0).road + " " + output.get(0).house_number);
+                                    else
+                                        bottomSheetTextView.setText(output.get(0).road);
+                                    if (output.get(0).city != null) {
+                                        bottomSheetTextViewSubtitle.setText(output.get(0).city);
+                                        SharedPreferences.Editor editor = prefs.edit();
+                                        editor.putString("city", String.valueOf(output.get(0).city));
+                                        editor.apply();
+                                    }
+                                } catch (Exception e) {
+                                    bottomSheetTextView.setText("Невозможно загрузить адрес");
+                                    bottomSheetTextViewSubtitle.setText(output.toString());
+                                }
+                            }
+                        }));
                 Marker startMarker = new Marker(map);
                 startMarker.setPosition(p);
                 startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
                 map.getOverlays().add(startMarker);
                 map.invalidate();
                 marker_geopostition = p;
-                Log.d(tag, "Marker geoposition: " + String.valueOf(p.getLatitude() - prefs.getFloat("Latitude",59.93863f)) + ", " + String.valueOf(p.getLongitude() - prefs.getFloat("Longitude",30.31413f)));
+                Log.d(tag, "Marker geoposition: " + String.valueOf(p.getLatitude() - prefs.getFloat("Latitude", 59.93863f)) + ", " + String.valueOf(p.getLongitude() - prefs.getFloat("Longitude", 30.31413f)));
+                bottom_sheet_elements_layout.removeAllViews();
+                bottom_sheet_comments_layout.removeAllViews();
                 TextView elements_textView = new TextView(MainActivity.this);
                 elements_textView.setText("По этой точке еще нет информации о доступных магазинах. Вы можете добавить новое место, нажав на кнопку.");
                 elements_textView.setLayoutParams(bottom_sheet_elements_layout.getLayoutParams());
@@ -310,13 +410,7 @@ public class MainActivity extends AppCompatActivity {
         map.getOverlays().add(OverlayEvents);
 
     }
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB) // API 11
-    public static <T> void executeAsyncTask(AsyncTask<T, ?, ?> asyncTask, T... params) {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-            asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, params);
-        else
-            asyncTask.execute(params);
-    }
+
     public void onResume() {
         super.onResume();
         //this will refresh the osmdroid configuration on resuming.
@@ -328,7 +422,6 @@ public class MainActivity extends AppCompatActivity {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
             Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this));
-            return;
         }
     }
 
@@ -346,60 +439,15 @@ public class MainActivity extends AppCompatActivity {
             mapController.animateTo(locGeoPoint);
             prefs = this.getPreferences(Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
-            float Latitude = (float)loc.getLatitude();
+            float Latitude = (float) loc.getLatitude();
             editor.putFloat("Latitude", Latitude);
-            float Longitude = (float)loc.getLongitude();
+            float Longitude = (float) loc.getLongitude();
             editor.putFloat("Longitude", Longitude);
-            Log.d(tag,"Last saved Geoposition: " + String.valueOf( prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf( prefs.getFloat("Longitude", Longitude)));
-            editor.commit();
+            Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf(prefs.getFloat("Longitude", Longitude)));
+            editor.apply();
         } else GetLocPermission();
 
     }
-
-    private LocationListener myLocationListener
-            = new LocationListener() {
-
-        @Override
-        public void onLocationChanged(Location location) {
-            // TODO Auto-generated method stub
-            if (!geodata_updated) {
-                //updateLoc(location);
-                GeoPoint locGeoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-                mapController.setCenter(locGeoPoint);
-                mapController.zoomTo(17);
-                map.invalidate();
-                prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
-                SharedPreferences.Editor editor = prefs.edit();
-                float Latitude = (float)location.getLatitude();
-                editor.putFloat("Latitude", Latitude);
-                float Longitude = (float)location.getLongitude();
-                editor.putFloat("Longitude", Longitude);
-                Log.d(tag,"Last saved Geoposition: " + String.valueOf( prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf( prefs.getFloat("Longitude", Longitude)));
-                editor.commit();
-                geodata_updated = true;
-            }
-        }
-
-        @Override
-        public void onProviderDisabled(String provider) {
-            // TODO Auto-generated method stub
-
-        }
-
-        @Override
-        public void onProviderEnabled(String provider) {
-            // TODO Auto-generated method stub
-
-
-        }
-
-        @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {
-            // TODO Auto-generated method stub
-
-        }
-
-    };
 
     public void GetLocPermission() {
         if (android.os.Build.VERSION.SDK_INT >= 23) {
@@ -410,7 +458,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private boolean checkAndRequestPermissions() {
+    private void checkAndRequestPermissions() {
         int permissionSendMessage = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
         int locationPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
         int storagePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -426,14 +474,12 @@ public class MainActivity extends AppCompatActivity {
         }
         if (!listPermissionsNeeded.isEmpty()) {
             ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]), permsRequestCode);
-            return false;
         }
-        return true;
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+                                           @NonNull String permissions[], @NonNull int[] grantResults) {
         switch (requestCode) {
             case 200: {
 
@@ -447,155 +493,47 @@ public class MainActivity extends AppCompatActivity {
                     for (int i = 0; i < permissions.length; i++)
                         perms.put(permissions[i], grantResults[i]);
                     // Check for both permissions
-                    if (perms.get(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                            && perms.get(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                            && perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                        // process the normal flow
-                        //else any one or both the permissions are not granted
-                        //waitAndNavigateToOnboardingTutorial();
-                    } else {
-                        //permission is denied (this is the first time, when "never ask again" is not checked) so ask again explaining the usage of permission
-                        // shouldShowRequestPermissionRationale will return true
-                        // show the dialog or snackbar saying its necessary and try again otherwise proceed with setup.
-                        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                            showDialogOK("Camera, Storage and Location Services Permission required for this app", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    switch (which) {
-                                        case DialogInterface.BUTTON_POSITIVE:
-                                            checkAndRequestPermissions();
-                                            break;
-                                        case DialogInterface.BUTTON_NEGATIVE:
-                                            // proceed with logic by disabling the related features or quit the app.
-                                            break;
-                                    }
+                    if (perms.get(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                            || perms.get(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                            || perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                                //permission is denied (this is the first time, when "never ask again" is not checked) so ask again explaining the usage of permission
+                                // shouldShowRequestPermissionRationale will return true
+                                // show the dialog or snackbar saying its necessary and try again otherwise proceed with setup.
+                                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                                    showDialogOK(new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            switch (which) {
+                                                case DialogInterface.BUTTON_POSITIVE:
+                                                    checkAndRequestPermissions();
+                                                    break;
+                                                case DialogInterface.BUTTON_NEGATIVE:
+                                                    // proceed with logic by disabling the related features or quit the app.
+                                                    break;
+                                            }
+                                        }
+                                    });
+                                } //permission is denied (and never ask again is checked)
+                                // shouldShowRequestPermissionRationale will return false else
+                                {
+                                    Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_LONG).show(); // //proceed with logic by disabling the related features or quit the app.
                                 }
-                            });
-                        } //permission is denied (and never ask again is checked)
-                        // shouldShowRequestPermissionRationale will return false else
-                        {
-                            Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_LONG).show(); // //proceed with logic by disabling the related features or quit the app.
-                        }
-                    }
+                            }
+                    // process the normal flow
+                    //else any one or both the permissions are not granted
+                    //waitAndNavigateToOnboardingTutorial();
                 }
             }
         }
     }
-    private void showDialogOK(String message, DialogInterface.OnClickListener okListener) {
+
+    private void showDialogOK(DialogInterface.OnClickListener okListener) {
         new AlertDialog.Builder(this)
-                .setMessage(message)
+                .setMessage("Camera, Storage and Location Services Permission required for this app")
                 .setPositiveButton("OK", okListener)
                 .setNegativeButton("Cancel", okListener)
                 .create()
                 .show();
     }
 
-    public class GetUrlContentTask extends AsyncTask<String, Void, List<XMLParser.Entry>> {
-
-        SharedPreferences prefs;
-
-        @Override
-        protected List<XMLParser.Entry> doInBackground(String... urls) {
-            try {
-                return loadXmlFromNetwork(urls[0]);
-            } catch (XmlPullParserException e) {
-                Log.d("LogDebug", e.getMessage());
-                List error = null;
-                error.add("connection_error");
-                error.add(e.getMessage());
-                return error;
-            } catch (IOException e) {
-                List error = null;
-                error.add("xml error");
-                error.add(e.getMessage());
-                return error;
-            }
-        }
-
-        public GetUrlContentTask (SharedPreferences prefs)
-        {
-            this.prefs = prefs;
-        }
-
-        private List<XMLParser.Entry> loadXmlFromNetwork(String urlString) throws XmlPullParserException, IOException {
-            InputStream stream = null;
-            // Instantiate the parser
-            XMLParser stackOverflowXmlParser = new XMLParser();
-            List<XMLParser.Entry> entries = null;
-
-            //StringBuilder htmlString = new StringBuilder();
-            try {
-                stream = downloadUrl(urlString);
-                entries = stackOverflowXmlParser.parse(stream);
-                // Makes sure that the InputStream is closed after the app is
-                // finished using it.
-            } finally {
-                if (stream != null) {
-                    stream.close();
-                }
-            }
-
-            // StackOverflowXmlParser returns a List (called "entries") of Entry objects.
-            // Each Entry object represents a single post in the XML feed.
-            // This section processes the entries list to combine each entry with HTML markup.
-            // Each entry is displayed in the UI as a link that optionally includes
-            // a text summary.
-            /*for (XMLParser.Entry entry : entries) {
-                htmlString.append(entry.city);
-                htmlString.append(entry.road);
-                htmlString.append(entry.house_number);
-            }*/
-
-            //return htmlString.toString();
-
-            return  entries;
-        }
-
-        // Given a string representation of a URL, sets up a connection and gets
-// an input stream.
-        private InputStream downloadUrl(String urlString) throws IOException {
-            URL url = new URL(urlString);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setReadTimeout(10000 /* milliseconds */);
-            conn.setConnectTimeout(15000 /* milliseconds */);
-            conn.setRequestMethod("GET");
-            conn.setDoInput(true);
-            // Starts the query
-            conn.connect();
-            int statusCode = 0;
-            statusCode = conn.getResponseCode();
-            InputStream is = null;
-            if (statusCode >= 200 && statusCode < 400) {
-                // Create an InputStream in order to extract the response object
-                    is = conn.getInputStream();
-            }
-            else {
-                is = conn.getErrorStream();
-            }
-            return is;
-        }
-
-        @Override
-        protected void onPostExecute(List<XMLParser.Entry> result) {
-            // Displays the HTML string in the UI via a WebView
-            bottomSheetTextView = (TextView) findViewById(R.id.bottom_sheet_title);
-            bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
-
-            try {
-                if(result.get(0).house_number!=null)
-                    bottomSheetTextView.setText(result.get(0).road + " " + result.get(0).house_number);
-                else
-                    bottomSheetTextView.setText(result.get(0).road);
-                if(result.get(0).city!=null) {
-                    bottomSheetTextViewSubtitle.setText(result.get(0).city);
-                    SharedPreferences.Editor editor = prefs.edit();
-                    editor.putString("city", String.valueOf(result.get(0).city));
-                    editor.commit();
-                }
-            }catch (Exception e) {
-                bottomSheetTextView.setText("Невозможно загрузить адрес");
-                bottomSheetTextViewSubtitle.setText(result.toString());
-            }
-            }
-        }
-    }
+}
