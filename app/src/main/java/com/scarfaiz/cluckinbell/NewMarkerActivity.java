@@ -30,6 +30,7 @@ public class NewMarkerActivity extends AppCompatActivity {
     private static Double longitude;
     private static String city;
     private static String server_address;
+    private static String address;
 
 
     @Override
@@ -47,6 +48,8 @@ public class NewMarkerActivity extends AppCompatActivity {
         latitude = b.getDouble("latitude");
         longitude = b.getDouble("longitude");
         city = b.getString("city");
+        address = b.getString("address");
+        marker_address.setText(address);
         server_address = "http://178.162.41.115/add_entry.php";
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
@@ -72,9 +75,14 @@ public class NewMarkerActivity extends AppCompatActivity {
         marker_data.add(new BasicNameValuePair("comments", marker_comments.getText().toString()));
         marker_data.add(new BasicNameValuePair("latitude", latitude.toString()));
         marker_data.add(new BasicNameValuePair("longitude", longitude.toString()));
-        new AddEntryTask(server_address, marker_data).execute();
-        Toast.makeText(NewMarkerActivity.this, "Ваша заяка отправлена на модерацию", Toast.LENGTH_SHORT);
-        this.finish();
+        if(marker_name.getText() !=null && marker_address.getText() !=null) {
+            new AddEntryTask(server_address, marker_data).execute();
+            Toast.makeText(NewMarkerActivity.this, "Ваша заяка отправлена на модерацию", Toast.LENGTH_SHORT);
+            this.finish();
+        }
+        else {
+            Toast.makeText(NewMarkerActivity.this, "Необходимо заполнить обязательные поля", Toast.LENGTH_SHORT);
+        }
     }
 
 }

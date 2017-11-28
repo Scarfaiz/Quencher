@@ -62,10 +62,13 @@ public class MainActivity extends AppCompatActivity {
     private static int permsRequestCode;
     private TextView bottomSheetTextView;
     private TextView bottomSheetTextViewSubtitle;
+    private TextView bottom_sheet_button_desc;
     private static SharedPreferences prefs;
     private static String url;
     private static String tag = "LogDebug";
     private static GeoPoint marker_geopostition;
+    private String city;
+    private String address;
     private LinearLayout bottom_sheet_elements_layout;
     private FrameLayout bottom_sheet_comments_layout;
     private RelativeLayout bottom_sheet_rel;
@@ -156,6 +159,8 @@ public class MainActivity extends AppCompatActivity {
         if (oMapLocationOverlay.isEnabled())
             Toast.makeText(getBaseContext(),"Enabled", Toast.LENGTH_LONG).show();*/
         marker_geopostition = null;
+        address = null;
+        city = null;
         int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
@@ -195,6 +200,7 @@ public class MainActivity extends AppCompatActivity {
         bottom_sheet_elements_layout = findViewById(R.id.bottom_sheet_elements_layout);
         bottom_sheet_comments_layout = findViewById(R.id.bottom_sheet_comments_layout);
         bottom_sheet_rel = findViewById(R.id.bottom_sheet_rel);
+        bottom_sheet_button_desc = findViewById(R.id.bottom_sheet_button_desc);
 
         SearchButton = findViewById(R.id.searchButton);
         SearchButton.setOnClickListener(new View.OnClickListener() {
@@ -231,7 +237,8 @@ public class MainActivity extends AppCompatActivity {
                                                             startMarker.a[i].setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
                                                                 @Override
                                                                 public boolean onMarkerClick(Marker item, MapView arg1) {
-                                                                    ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
+                                                                    bottom_sheet_button_desc.setText("Добавить комментарий");
+                                                                    final ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
                                                                     bottom_sheet_pb.setLayoutParams(bottom_sheet_rel.getLayoutParams());
                                                                     bottom_sheet_rel.addView(bottom_sheet_pb);
                                                                     executeAsyncTask(new GetEntryDataTask(req_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), new GetEntryDataTask.AsyncResponse() {
@@ -239,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
                                                                         @Override
                                                                         public void processFinish(List<String> output) {
                                                                             marker_geopostition = new GeoPoint(Double.valueOf(output.get(6)), Double.valueOf(output.get(7)));
-                                                                            bottom_sheet_rel.removeAllViews();
+                                                                            bottom_sheet_rel.removeView(bottom_sheet_pb);
                                                                             bottom_sheet_elements_layout.removeAllViews();
                                                                             behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
                                                                             bottomSheetTextView.setText(output.get(0));
@@ -335,9 +342,10 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Intent intent = new Intent(MainActivity.this, NewMarkerActivity.class);
                 try {
-                    intent.putExtra("city", bottomSheetTextViewSubtitle.getText());
+                    intent.putExtra("city", city);
                     intent.putExtra("latitude", marker_geopostition.getLatitude());
                     intent.putExtra("longitude", marker_geopostition.getLongitude());
+                    intent.putExtra("address", address);
                     startActivity(intent);
                 } catch (NullPointerException e) {
                     Log.d(tag, "A failure accured while creating new marker:" + e.getMessage());
@@ -358,8 +366,9 @@ public class MainActivity extends AppCompatActivity {
                 ItemPagerAdapter adapter = new ItemPagerAdapter(MainActivity.this, new int[]{0});
                 ViewPager viewPager = findViewById(R.id.pager);
                 viewPager.setAdapter(adapter);
+                bottom_sheet_button_desc.setText("Добавить место");
                 behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
-                ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
+                final ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
                 bottom_sheet_pb.setLayoutParams(bottom_sheet_rel.getLayoutParams());
                 bottom_sheet_rel.addView(bottom_sheet_pb);
                 url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
@@ -372,14 +381,17 @@ public class MainActivity extends AppCompatActivity {
                             @SuppressLint("SetTextI18n")
                             @Override
                             public void processFinish(List<XMLParser.Entry> output){
-                                bottom_sheet_rel.removeAllViews();
+                                bottom_sheet_rel.removeView(bottom_sheet_pb);
                                 try {
-                                    if (output.get(0).house_number != null)
+                                    if (output.get(0).house_number != null){
                                         bottomSheetTextView.setText(output.get(0).road + " " + output.get(0).house_number);
+                                        address = (output.get(0).road + " " + output.get(0).house_number);
+                                    }
                                     else
                                         bottomSheetTextView.setText(output.get(0).road);
                                     if (output.get(0).city != null) {
                                         bottomSheetTextViewSubtitle.setText(output.get(0).city);
+                                        city = output.get(0).city;
                                         SharedPreferences.Editor editor = prefs.edit();
                                         editor.putString("city", String.valueOf(output.get(0).city));
                                         editor.apply();
