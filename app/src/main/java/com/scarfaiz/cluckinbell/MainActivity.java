@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -21,6 +22,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.TextInputEditText;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.PermissionChecker;
@@ -28,14 +30,21 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.animation.AnimationUtils;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.events.MapEventsReceiver;
@@ -232,6 +241,10 @@ public class MainActivity extends AppCompatActivity {
                                                             startMarker.a[i].setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
                                                             startMarker.a[i].setTitle(String.valueOf(id));
                                                             final int final_i = i;
+                                                            prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
+                                                            SharedPreferences.Editor editor = prefs.edit();
+                                                            editor.putInt("marker_id", Integer.valueOf(startMarker.a[final_i].getTitle()));
+                                                            editor.apply();
                                                             map.getOverlays().add(startMarker.a[i]);
                                                             map.invalidate();
                                                             startMarker.a[i].setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
@@ -340,6 +353,7 @@ public class MainActivity extends AppCompatActivity {
         newMarkerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if(bottom_sheet_button_desc.getText() == "Добавить место"){
                 Intent intent = new Intent(MainActivity.this, NewMarkerActivity.class);
                 try {
                     intent.putExtra("city", city);
@@ -349,6 +363,11 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(intent);
                 } catch (NullPointerException e) {
                     Log.d(tag, "A failure accured while creating new marker:" + e.getMessage());
+                }
+                }
+                else if(bottom_sheet_button_desc.getText() == "Добавить комментарий"){
+                    prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
+                    onButtonShowPopupWindowClick(findViewById(R.id.coordinatorlayout), prefs.getInt("marker_id", 0));
                 }
             }
         });
@@ -415,12 +434,99 @@ public class MainActivity extends AppCompatActivity {
                 elements_textView.setText("По этой точке еще нет информации о доступных магазинах. Вы можете добавить новое место, нажав на кнопку.");
                 elements_textView.setLayoutParams(bottom_sheet_elements_layout.getLayoutParams());
                 bottom_sheet_elements_layout.addView(elements_textView);
+                startMarker.setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
+                    @Override
+                    public boolean onMarkerClick(Marker item, MapView arg1)
+                    {
+                        bottom_sheet_button_desc.setText("Добавить место");
+                        bottom_sheet_rel.addView(bottom_sheet_pb);
+                        url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + marker_geopostition.getLatitude() + "&lon=" + marker_geopostition.getLongitude() + "&zoom=18&addressdetails=1";
+                        Log.d(tag, "Sending request to: " + url);
+                        prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
+                        bottomSheetTextView = findViewById(R.id.bottom_sheet_title);
+                        bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
+                        executeAsyncTask(new GetUrlContentTask(prefs, url, new GetUrlContentTask.AsyncResponse(){
+
+                            @SuppressLint("SetTextI18n")
+                            @Override
+                            public void processFinish(List<XMLParser.Entry> output){
+                                bottom_sheet_rel.removeView(bottom_sheet_pb);
+                                try {
+                                    if (output.get(0).house_number != null){
+                                        bottomSheetTextView.setText(output.get(0).road + " " + output.get(0).house_number);
+                                        address = (output.get(0).road + " " + output.get(0).house_number);
+                                    }
+                                    else
+                                        bottomSheetTextView.setText(output.get(0).road);
+                                    if (output.get(0).city != null) {
+                                        bottomSheetTextViewSubtitle.setText(output.get(0).city);
+                                        city = output.get(0).city;
+                                        SharedPreferences.Editor editor = prefs.edit();
+                                        editor.putString("city", String.valueOf(output.get(0).city));
+                                        editor.apply();
+                                    }
+                                } catch (Exception e) {
+                                    bottomSheetTextView.setText("Невозможно загрузить адрес");
+                                    bottomSheetTextViewSubtitle.setText(output.toString());
+                                }
+                            }
+                        }));
+                        bottom_sheet_elements_layout.removeAllViews();
+                        bottom_sheet_comments_layout.removeAllViews();
+                        TextView elements_textView = new TextView(MainActivity.this);
+                        elements_textView.setText("По этой точке еще нет информации о доступных магазинах. Вы можете добавить новое место, нажав на кнопку.");
+                        elements_textView.setLayoutParams(bottom_sheet_elements_layout.getLayoutParams());
+                        bottom_sheet_elements_layout.addView(elements_textView);
+                        return true;
+                    }
+                });
                 return false;
             }
         };
         MapEventsOverlay OverlayEvents = new MapEventsOverlay(getBaseContext(), mReceive);
         map.getOverlays().add(OverlayEvents);
 
+    }
+
+    public void onButtonShowPopupWindowClick(View view, final int id) {
+        CoordinatorLayout mainLayout = findViewById(R.id.coordinatorlayout);
+        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+        final View popupView = inflater.inflate(R.layout.popup_window_layout, null);
+        popupView.setAnimation(AnimationUtils.loadAnimation(this, R.anim.popup_window_animation));
+        final PopupWindow popup_window = new PopupWindow(popupView);
+        popup_window.setWidth(FrameLayout.LayoutParams.WRAP_CONTENT);
+        popup_window.setHeight(FrameLayout.LayoutParams.WRAP_CONTENT);
+        popup_window.setFocusable(true);
+        popup_window.setBackgroundDrawable(new BitmapDrawable());
+        popup_window.setOutsideTouchable(false);
+        popup_window.showAtLocation(mainLayout, Gravity.CENTER, 0 , 0);
+
+        final TextInputEditText popup_window_text = popupView.findViewById(R.id.popup_comment);
+        final String add_comment_server_address = "http://178.162.41.115/add_comment.php";
+
+        final Button popup_cancel_button = popupView.findViewById(R.id.popup_cancel);
+        popup_cancel_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                popup_window.setAnimationStyle(R.anim.popup_window_animation);
+                popup_window.dismiss();
+            }
+        });
+        final Button popup_ok_button = popupView.findViewById(R.id.popup_ok);
+        popup_ok_button.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("ShowToast")
+            @Override
+            public void onClick(View view) {
+                List<NameValuePair> comment_data = new ArrayList<>();
+                comment_data.add(new BasicNameValuePair("id", String.valueOf(id)));
+                comment_data.add(new BasicNameValuePair("comments", popup_window_text.getText().toString()));
+                Log.d(tag, "Comment data:" + id + " " + popup_window_text.getText().toString());
+                executeAsyncTask(new AddCommentTask(add_comment_server_address, comment_data));
+                Toast.makeText(MainActivity.this, "Комментарий успешно добавлен", Toast.LENGTH_SHORT);
+                popup_window.setAnimationStyle(R.anim.popup_window_animation);
+                popup_window.dismiss();
+            }
+        });
     }
 
     public void onResume() {
