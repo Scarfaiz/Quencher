@@ -3,6 +3,7 @@ package com.scarfaiz.cluckinbell;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -22,17 +23,24 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
 import android.support.design.widget.TextInputEditText;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.PermissionChecker;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -60,7 +68,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private static MapView map;
     public boolean geodata_updated = false;
@@ -72,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView bottomSheetTextView;
     private TextView bottomSheetTextViewSubtitle;
     private TextView bottom_sheet_button_desc;
-    private static SharedPreferences prefs;
+    SharedPreferences prefs;
     private static String url;
     private static String tag = "LogDebug";
     private static GeoPoint marker_geopostition;
@@ -82,64 +90,17 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout bottom_sheet_comments_layout;
     private RelativeLayout bottom_sheet_rel;
 
-    private LocationListener myLocationListener
-            = new LocationListener() {
-
-        @Override
-        public void onLocationChanged(Location location) {
-            // TODO Auto-generated method stub
-            if (!geodata_updated) {
-                GeoPoint locGeoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-                mapController.setCenter(locGeoPoint);
-                mapController.zoomTo(17);
-                map.invalidate();
-                prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
-                SharedPreferences.Editor editor = prefs.edit();
-                float Latitude = (float) location.getLatitude();
-                editor.putFloat("Latitude", Latitude);
-                float Longitude = (float) location.getLongitude();
-                editor.putFloat("Longitude", Longitude);
-                Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf(prefs.getFloat("Longitude", Longitude)));
-                editor.apply();
-                geodata_updated = true;
-            }
-        }
-
-        @Override
-        public void onProviderDisabled(String provider) {
-            // TODO Auto-generated method stub
-
-        }
-
-        @Override
-        public void onProviderEnabled(String provider) {
-            // TODO Auto-generated method stub
-
-
-        }
-
-        @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {
-            // TODO Auto-generated method stub
-
-        }
-
-    };
-
-    @SafeVarargs
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB) // API 11
-    public static <T> void executeAsyncTask(AsyncTask<T, ?, ?> asyncTask, T... params) {
-        asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, params);
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        if(!prefs.contains("username"))
+            startActivity(new Intent(MainActivity.this, LoginActivity.class));
+        setContentView(R.layout.activity_main);
         Context ctx = getApplicationContext();
-        prefs = this.getPreferences(Context.MODE_PRIVATE);
         Configuration.getInstance().load(ctx, prefs);
         Configuration.getInstance().setUserAgentValue("CB");
-        setContentView(R.layout.activity_main);
         permsRequestCode = 1;
         GetLocPermission();
         map =  findViewById(R.id.map);
@@ -150,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
         GeoPoint startPoint = new GeoPoint(prefs.getFloat("Latitude", 59.93863f), prefs.getFloat("Longitude", 30.31413f));
         Log.d(tag, "Loaded Geoposition: " + String.valueOf(prefs.getFloat("Latitude", 59.93863f)) + "  " + String.valueOf(prefs.getFloat("Longitude", 30.31413f)));
         mapController.setCenter(startPoint);
+        geodata_updated = false;
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         assert locationManager != null;
         locationManager.removeUpdates(myLocationListener);
@@ -167,6 +129,19 @@ public class MainActivity extends AppCompatActivity {
         oMapLocationOverlay.setPersonIcon(person_bitmap);
         if (oMapLocationOverlay.isEnabled())
             Toast.makeText(getBaseContext(),"Enabled", Toast.LENGTH_LONG).show();*/
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        //setSupportActionBar(toolbar);
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.addDrawerListener(toggle);
+        toggle.syncState();
+
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
+
         marker_geopostition = null;
         address = null;
         city = null;
@@ -180,13 +155,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        CoordinatorLayout coordinatorLayout = findViewById(R.id.coordinatorlayout);
+        final CoordinatorLayout coordinatorLayout = findViewById(R.id.coordinatorlayout);
         View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
         final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
         behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_HIDDEN);
 
         //setting listener for locButton
-        LocButton = findViewById(R.id.locButton);
+        LocButton = coordinatorLayout.findViewById(R.id.locButton);
         LocButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -211,11 +186,10 @@ public class MainActivity extends AppCompatActivity {
         bottom_sheet_rel = findViewById(R.id.bottom_sheet_rel);
         bottom_sheet_button_desc = findViewById(R.id.bottom_sheet_button_desc);
 
-        SearchButton = findViewById(R.id.searchButton);
+        SearchButton = coordinatorLayout.findViewById(R.id.searchButton);
         SearchButton.setOnClickListener(new View.OnClickListener() {
                                             @Override
                                             public void onClick(View view) {
-                                                prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
                                                 executeAsyncTask(new SearchForMarkersTask(String.valueOf(prefs.getFloat("Latitude", 59.93863f)), String.valueOf(prefs.getFloat("Longitude", 30.31413f)), prefs.getString("city", "Санкт-Петербург"),
                                                 new SearchForMarkersTask.AsyncResponse() {
 
@@ -241,7 +215,6 @@ public class MainActivity extends AppCompatActivity {
                                                             startMarker.a[i].setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
                                                             startMarker.a[i].setTitle(String.valueOf(id));
                                                             final int final_i = i;
-                                                            prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
                                                             SharedPreferences.Editor editor = prefs.edit();
                                                             editor.putInt("marker_id", Integer.valueOf(startMarker.a[final_i].getTitle()));
                                                             editor.apply();
@@ -348,7 +321,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         FrameLayout frameLayoutBottom = findViewById(R.id.dummy_framelayout_replacing_map);
-        FloatingActionButton newMarkerButton = findViewById(R.id.new_marker_button);
+        FloatingActionButton newMarkerButton = coordinatorLayout.findViewById(R.id.new_marker_button);
 
         newMarkerButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -366,7 +339,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 }
                 else if(bottom_sheet_button_desc.getText() == "Добавить комментарий"){
-                    prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
                     onButtonShowPopupWindowClick(findViewById(R.id.coordinatorlayout), prefs.getInt("marker_id", 0));
                 }
             }
@@ -383,7 +355,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean longPressHelper(GeoPoint p) {
                 ItemPagerAdapter adapter = new ItemPagerAdapter(MainActivity.this, new int[]{0});
-                ViewPager viewPager = findViewById(R.id.pager);
+                ViewPager viewPager = coordinatorLayout.findViewById(R.id.pager);
                 viewPager.setAdapter(adapter);
                 bottom_sheet_button_desc.setText("Добавить место");
                 behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
@@ -392,7 +364,6 @@ public class MainActivity extends AppCompatActivity {
                 bottom_sheet_rel.addView(bottom_sheet_pb);
                 url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
                 Log.d(tag, "Sending request to: " + url);
-                prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
                 bottomSheetTextView = findViewById(R.id.bottom_sheet_title);
                 bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
                 executeAsyncTask(new GetUrlContentTask(prefs, url, new GetUrlContentTask.AsyncResponse(){
@@ -442,7 +413,6 @@ public class MainActivity extends AppCompatActivity {
                         bottom_sheet_rel.addView(bottom_sheet_pb);
                         url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + marker_geopostition.getLatitude() + "&lon=" + marker_geopostition.getLongitude() + "&zoom=18&addressdetails=1";
                         Log.d(tag, "Sending request to: " + url);
-                        prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
                         bottomSheetTextView = findViewById(R.id.bottom_sheet_title);
                         bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
                         executeAsyncTask(new GetUrlContentTask(prefs, url, new GetUrlContentTask.AsyncResponse(){
@@ -487,6 +457,58 @@ public class MainActivity extends AppCompatActivity {
         map.getOverlays().add(OverlayEvents);
 
     }
+
+    private LocationListener myLocationListener
+            = new LocationListener() {
+
+        @Override
+        public void onLocationChanged(Location location) {
+            // TODO Auto-generated method stub
+            if (!geodata_updated) {
+                GeoPoint locGeoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
+                mapController.setCenter(locGeoPoint);
+                mapController.zoomTo(17);
+                map.invalidate();
+                prefs = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = prefs.edit();
+                float Latitude = (float) location.getLatitude();
+                editor.putFloat("Latitude", Latitude);
+                float Longitude = (float) location.getLongitude();
+                editor.putFloat("Longitude", Longitude);
+                Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf(prefs.getFloat("Longitude", Longitude)));
+                editor.apply();
+                geodata_updated = true;
+            }
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            // TODO Auto-generated method stub
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            // TODO Auto-generated method stub
+
+
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            // TODO Auto-generated method stub
+
+        }
+
+    };
+
+    @SafeVarargs
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB) // API 11
+    public static <T> void executeAsyncTask(AsyncTask<T, ?, ?> asyncTask, T... params) {
+        asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, params);
+    }
+
+
 
     public void onButtonShowPopupWindowClick(View view, final int id) {
         CoordinatorLayout mainLayout = findViewById(R.id.coordinatorlayout);
@@ -652,6 +674,66 @@ public class MainActivity extends AppCompatActivity {
                 .setNegativeButton("Cancel", okListener)
                 .create()
                 .show();
+    }
+
+    @Override
+    public void onBackPressed() {
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    /*@Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main_activity2, menu);
+        return true;
+    }*/
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    @SuppressWarnings("StatementWithEmptyBody")
+    @Override
+    public boolean onNavigationItemSelected(MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
+
+        if (id == R.id.nav_camera) {
+            // Handle the camera action
+        } else if (id == R.id.nav_gallery) {
+
+        } else if (id == R.id.nav_slideshow) {
+
+        } else if (id == R.id.nav_manage) {
+
+        } else if (id == R.id.nav_signup)
+        {
+            final int REQUEST_SIGNUP = 0;
+            Intent intent = new Intent(getApplicationContext(), SignupActivity.class);
+            startActivityForResult(intent, REQUEST_SIGNUP);
+        } else if (id == R.id.nav_prefs) {
+
+        }
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
     }
 
 }
