@@ -8,12 +8,13 @@ import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
 import libs.JSONParser;
 
-class GetEntryDataTask extends AsyncTask<String, List<String>, List<String>> {
+class GetCommentsTask extends AsyncTask<String, List<String>, List<String>> {
 
     private static final String TAG_SUCCESS = "success";
     private static String server_address;
@@ -21,9 +22,9 @@ class GetEntryDataTask extends AsyncTask<String, List<String>, List<String>> {
     private static String TAG = "LogDebug";
     private AsyncResponse delegate = null;
 
-    public GetEntryDataTask(String server_address, int id, AsyncResponse delegate) {
-        GetEntryDataTask.server_address = server_address;
-        GetEntryDataTask.id = id;
+    public GetCommentsTask(String server_address, int id, AsyncResponse delegate) {
+        GetCommentsTask.server_address = server_address;
+        GetCommentsTask.id = id;
         this.delegate = delegate;
     }
 
@@ -40,21 +41,11 @@ class GetEntryDataTask extends AsyncTask<String, List<String>, List<String>> {
         Log.d(TAG, "server address: " + server_address + "   enrty data: " + entry_data.toString());
         JSONObject json = jsonParser.makeHttpRequest(server_address, "GET", entry_data);
         try {
-            //Log.d(TAG, json.toString());
-
             success = json.getInt(TAG_SUCCESS);
+            marker_data.add(0, String.valueOf(success));
             if (success == 1) {
-                /*JSONArray productObj = json.getJSONArray(marker_data);
-                JSONObject entry = productObj.getJSONObject(0);*/
-                marker_data.add(0, json.getString("title"));
-                marker_data.add(1, json.getString("address"));
-                marker_data.add(2, json.getString("working_hours"));
-                marker_data.add(3, json.getString("product_range"));
-                marker_data.add(4, json.getString("confirmation_status"));
-                marker_data.add(5, json.getString("comments"));
-                marker_data.add(6, json.getString("latitude"));
-                marker_data.add(7, json.getString("longitude"));
-                marker_data.add(8, json.getString("username"));
+                marker_data.add(1, json.getString("username"));
+                marker_data.add(2, json.getString("comments"));
                 return marker_data;
             } else {
                 // продукт с pid не найден
@@ -62,7 +53,8 @@ class GetEntryDataTask extends AsyncTask<String, List<String>, List<String>> {
                 return marker_data;
             }
         } catch (NullPointerException | JSONException e) {
-            marker_data.add(e.getMessage());
+            marker_data.add(0, "0");
+            marker_data.add(1, e.getMessage());
             return marker_data;
         }
     }
@@ -70,11 +62,26 @@ class GetEntryDataTask extends AsyncTask<String, List<String>, List<String>> {
     @Override
     protected void onPostExecute(List<String> result) {
         // закрываем диалог прогресс
-        Log.d(TAG, "Entry data was written with the result: " + result);
+        Log.d(TAG, "Comments data was written with the result: " + result);
         delegate.processFinish(result);
     }
 
     public interface AsyncResponse {
         void processFinish(List<String> output);
+    }
+    static class GenSet<E> {
+
+        E[] a;
+
+        GenSet(Class<E> c, int s) {
+            // Use Array native method to create array
+            // of a type only known at run time
+            @SuppressWarnings("unchecked") final E[] a = (E[]) Array.newInstance(c, s);
+            this.a = a;
+        }
+
+        E get(int i) {
+            return a[i];
+        }
     }
 }

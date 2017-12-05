@@ -1,7 +1,9 @@
 package com.scarfaiz.cluckinbell;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -66,22 +68,24 @@ public class NewMarkerActivity extends AppCompatActivity {
 
     }
     public void uphandler(View v){
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         List<NameValuePair> marker_data = new ArrayList<>();
         marker_data.add(new BasicNameValuePair("title", marker_name.getText().toString()));
         marker_data.add(new BasicNameValuePair("address", marker_address.getText().toString()));
         marker_data.add(new BasicNameValuePair("city", city));
         marker_data.add(new BasicNameValuePair("working_hours", String.valueOf(marker_o_h_spinner.getSelectedItemPosition())));
         marker_data.add(new BasicNameValuePair("product_range", String.valueOf(marker_range_spinner.getSelectedItemPosition())));
+        marker_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
         marker_data.add(new BasicNameValuePair("comments", marker_comments.getText().toString()));
         marker_data.add(new BasicNameValuePair("latitude", latitude.toString()));
         marker_data.add(new BasicNameValuePair("longitude", longitude.toString()));
         if(marker_name.getText() !=null && marker_address.getText() !=null) {
             new AddEntryTask(server_address, marker_data).execute();
-            Toast.makeText(NewMarkerActivity.this, "Ваша заяка отправлена на модерацию", Toast.LENGTH_SHORT);
+            Toast.makeText(NewMarkerActivity.this, "Ваша заяка отправлена на модерацию", Toast.LENGTH_SHORT).show();
             this.finish();
         }
         else {
-            Toast.makeText(NewMarkerActivity.this, "Необходимо заполнить обязательные поля", Toast.LENGTH_SHORT);
+            Toast.makeText(NewMarkerActivity.this, "Необходимо заполнить обязательные поля", Toast.LENGTH_SHORT).show();
         }
     }
 

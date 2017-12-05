@@ -8,8 +8,12 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.design.widget.NavigationView;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -136,6 +140,7 @@ public class SignupActivity extends AppCompatActivity {
                             editor.putString("username", name);
                             editor.putString("email", email);
                             editor.putInt("reputation", 0);
+                            editor.apply();
                             onSignupSuccess();
                         progressDialog.dismiss();}
                         else if(output.equals("3")){

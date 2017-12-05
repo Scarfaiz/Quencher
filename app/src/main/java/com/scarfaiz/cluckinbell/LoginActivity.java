@@ -7,10 +7,14 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.design.widget.NavigationView;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
 import android.content.Intent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -122,6 +126,7 @@ public class LoginActivity extends AppCompatActivity {
                             editor.putString("username", output.get(1));
                             editor.putString("email", email);
                             editor.putInt("reputation", Integer.valueOf(output.get(2)));
+                            editor.apply();
                             onLoginSuccess();
                             progressDialog.dismiss();}
                         else if(output.get(0).equals("0")){
@@ -179,7 +184,7 @@ public class LoginActivity extends AppCompatActivity {
             _emailText.setError(null);
         }
 
-        if (password.isEmpty() || password.length() < 4 || password.length() > 10) {
+        if (password.isEmpty() || password.length() < 4 || password.length() > 15) {
             _passwordText.setError("от 4 до 15 символов");
             valid = false;
         } else {

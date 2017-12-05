@@ -25,13 +25,9 @@
     <item android:title="Настройки">
         <menu>
             <item
-                android:id="@+id/nav_signup"
-                android:icon="@drawable/ic_menu_send"
-                android:title="Войти/Зарегистрироваться" />
-            <item
-                android:id="@+id/nav_prefs"
-                android:icon="@drawable/ic_menu_manage"
-                android:title="Найстройки аккаунта" />
+                android:id="@+id/nav_account"
+                android:icon="?android:attr/actionModePasteDrawable"
+                android:title="Зарегистрироваться" />
         </menu>
     </item>
 
