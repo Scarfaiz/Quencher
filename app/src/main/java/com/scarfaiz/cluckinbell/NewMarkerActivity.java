@@ -1,7 +1,10 @@
 package com.scarfaiz.cluckinbell;
 
+import android.annotation.TargetApi;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.content.ContextCompat;
@@ -32,7 +35,7 @@ public class NewMarkerActivity extends AppCompatActivity {
     private static Double longitude;
     private static String city;
     private static String server_address;
-    private static String address;
+    private static String reputation;
 
 
     @Override
@@ -50,7 +53,8 @@ public class NewMarkerActivity extends AppCompatActivity {
         latitude = b.getDouble("latitude");
         longitude = b.getDouble("longitude");
         city = b.getString("city");
-        address = b.getString("address");
+        String address = b.getString("address");
+        reputation = b.getString("reputation");
         marker_address.setText(address);
         server_address = "http://178.162.41.115/add_entry.php";
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
@@ -75,12 +79,14 @@ public class NewMarkerActivity extends AppCompatActivity {
         marker_data.add(new BasicNameValuePair("city", city));
         marker_data.add(new BasicNameValuePair("working_hours", String.valueOf(marker_o_h_spinner.getSelectedItemPosition())));
         marker_data.add(new BasicNameValuePair("product_range", String.valueOf(marker_range_spinner.getSelectedItemPosition())));
+        marker_data.add(new BasicNameValuePair("confirmation_status", reputation));
         marker_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
         marker_data.add(new BasicNameValuePair("comments", marker_comments.getText().toString()));
         marker_data.add(new BasicNameValuePair("latitude", latitude.toString()));
         marker_data.add(new BasicNameValuePair("longitude", longitude.toString()));
+
         if(marker_name.getText() !=null && marker_address.getText() !=null) {
-            new AddEntryTask(server_address, marker_data).execute();
+            executeAsyncTask(new AddEntryTask(server_address, marker_data));
             Toast.makeText(NewMarkerActivity.this, "Ваша заяка отправлена на модерацию", Toast.LENGTH_SHORT).show();
             this.finish();
         }
@@ -89,4 +95,9 @@ public class NewMarkerActivity extends AppCompatActivity {
         }
     }
 
+    @SafeVarargs
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB) // API 11
+    public static <T> void executeAsyncTask(AsyncTask<T, ?, ?> asyncTask, T... params) {
+        asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, params);
+    }
 }
