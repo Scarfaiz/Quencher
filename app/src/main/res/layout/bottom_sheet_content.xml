@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/white"
     android:orientation="vertical"
-    android:paddingBottom="16dp"
-    android:background="@android:color/white">
+    android:paddingBottom="16dp">
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="@dimen/bottom_sheet_peek_height"
         android:background="@color/colorPrimary"
-        android:paddingTop="8dp"
-        android:paddingStart="16dp"
+        android:paddingBottom="8dp"
         android:paddingEnd="16dp"
-        android:paddingBottom="8dp">
+        android:paddingStart="16dp"
+        android:paddingTop="8dp">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -28,24 +26,24 @@
                 android:layout_height="wrap_content"
                 android:text="Информация загружается..."
                 android:textColor="@android:color/white"
-                android:textSize="19sp"/>
+                android:textSize="19sp" />
 
             <TextView
                 android:id="@+id/bottom_sheet_subtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
                 android:text="Информация загружается..."
                 android:textColor="@android:color/white"
-                android:textSize="12sp"
-                android:layout_marginTop="5dp"/>
+                android:textSize="12sp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
                 android:text="Text 3"
                 android:textColor="@android:color/white"
-                android:textSize="12sp"
-                android:layout_marginTop="5dp"/>
+                android:textSize="12sp" />
 
         </LinearLayout>
 
@@ -53,12 +51,12 @@
             android:id="@+id/bottom_sheet_button_desc"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Добавить место"
-            android:textColor="@android:color/white"
-            android:textSize="14sp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:paddingTop="8dp"/>
+            android:paddingTop="8dp"
+            android:text="Добавить место"
+            android:textColor="@android:color/white"
+            android:textSize="14sp" />
 
     </RelativeLayout>
 
@@ -67,9 +65,9 @@
         android:id="@+id/bottom_sheet_rel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
         android:layout_marginEnd="16dp"
         android:layout_marginStart="16dp"
+        android:layout_marginTop="32dp"
         android:background="@drawable/border_bottom"
         android:orientation="vertical">
 
@@ -78,9 +76,10 @@
     <LinearLayout
         android:id="@+id/bottom_sheet_comments_layout"
         android:layout_width="match_parent"
-        android:layout_height="620dp"
+        android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginEnd="16dp"
         android:orientation="vertical">
 
     </LinearLayout>

@@ -107,6 +107,37 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             MenuItem nav_account = menu.findItem(R.id.nav_account);
             nav_account.setTitle("Информация об аккаунте");
         }
+        final String entrance_server_address = "http://178.162.41.115/get_daily.php";
+        List<NameValuePair> username_data = new ArrayList<>();
+        username_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
+        executeAsyncTask(new EntranceTask(entrance_server_address, username_data, new EntranceTask.AsyncResponse() {
+            @Override
+            public void processFinish(String output) {
+                if(output.equals("1"))
+                {
+                    CoordinatorLayout mainLayout = findViewById(R.id.coordinatorlayout);
+                    LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+                    final View popupView = inflater.inflate(R.layout.entrance_popup_window_layout, null);
+                    popupView.setAnimation(AnimationUtils.loadAnimation(MainActivity.this, R.anim.popup_window_animation));
+                    final PopupWindow popup_window = new PopupWindow(popupView);
+                    popup_window.setWidth(FrameLayout.LayoutParams.WRAP_CONTENT);
+                    popup_window.setHeight(FrameLayout.LayoutParams.WRAP_CONTENT);
+                    popup_window.setFocusable(true);
+                    popup_window.setBackgroundDrawable(new BitmapDrawable());
+                    popup_window.setOutsideTouchable(false);
+                    popup_window.showAtLocation(mainLayout, Gravity.CENTER, 0 , 0);
+                    final Button popup_entrance_ok = popupView.findViewById(R.id.popup_entrance_ok);
+                    popup_entrance_ok.setOnClickListener(new View.OnClickListener() {
+                        @SuppressLint("ShowToast")
+                        @Override
+                        public void onClick(View view) {
+                            popup_window.setAnimationStyle(R.anim.popup_window_animation);
+                            popup_window.dismiss();
+                        }
+                    });
+                }
+            }
+        }));
         Context ctx = getApplicationContext();
         Configuration.getInstance().load(ctx, prefs);
         Configuration.getInstance().setUserAgentValue("CB");
@@ -323,7 +354,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                                             r_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
                                                                                 bottom_sheet_rel.addView(wh_textView);
                                                                                 bottom_sheet_rel.addView(r_textView);
-                                                                            bottom_sheet_comments_layout.removeAllViews();
                                                                                 ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
                                                                                 params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
                                                                                 params.width = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -860,15 +890,69 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
+        prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        if (id == R.id.nav_leaderboard) {
+                executeAsyncTask(new LeaderboardTask(prefs.getString("username", "skipped"), new LeaderboardTask.AsyncResponse() {
+                    @Override
+                    public void processFinish(List<String> output) {
+                        try {
 
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
+                            CoordinatorLayout mainLayout = findViewById(R.id.coordinatorlayout);
+                            LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+                            final View popupView = inflater.inflate(R.layout.activity_leaderboard, null);
+                            popupView.setAnimation(AnimationUtils.loadAnimation(MainActivity.this, R.anim.popup_window_animation));
+                            final PopupWindow popup_window = new PopupWindow(popupView);
+                            popup_window.setWidth(FrameLayout.LayoutParams.WRAP_CONTENT);
+                            popup_window.setHeight(FrameLayout.LayoutParams.WRAP_CONTENT);
+                            popup_window.setFocusable(true);
+                            popup_window.setBackgroundDrawable(new BitmapDrawable());
+                            popup_window.setOutsideTouchable(false);
+                            popup_window.showAtLocation(mainLayout, Gravity.CENTER, 0 , 0);
+                            LinearLayout linearLayout = popupView.findViewById(R.id.leaderboard_scroll);
 
-        } else if (id == R.id.nav_slideshow) {
+                            final Button popup_leaderboard_ok = popupView.findViewById(R.id.popup_leaderboard_ok);
+                            popup_leaderboard_ok.setOnClickListener(new View.OnClickListener() {
+                                @SuppressLint("ShowToast")
+                                @Override
+                                public void onClick(View view) {
+                                    popup_window.setAnimationStyle(R.anim.popup_window_animation);
+                                    popup_window.dismiss();
+                                }
+                            });
 
-        } else if (id == R.id.nav_manage) {
-
+                            String username;
+                            String reputation;
+                            String[] username_split = output.get(0).split("\\n+");
+                            String[] reputation_split = output.get(1).split("\\n+");
+                            final LeaderboardTask.GenSet<LinearLayout> entry_linear = new LeaderboardTask.GenSet<>(LinearLayout.class, username_split.length);
+                            final LeaderboardTask.GenSet<TextView> username_text = new LeaderboardTask.GenSet<>(TextView.class, username_split.length);
+                            final LeaderboardTask.GenSet<TextView> reputation_text = new LeaderboardTask.GenSet<>(TextView.class, username_split.length);
+                            final LeaderboardTask.GenSet<TextView> place_text = new LeaderboardTask.GenSet<>(TextView.class, username_split.length);
+                            for (int i = 0; i < username_split.length; i++) {
+                                username = username_split[i];
+                                reputation = reputation_split[i];
+                                final int final_i = i + 1;
+                                Log.d(tag, "Split leaderboard data info: " + username + " " + reputation + " with array length: " + username_split.length);
+                                entry_linear.a[i] = new LinearLayout(MainActivity.this);
+                                username_text.a[i] = new TextView(MainActivity.this);
+                                reputation_text.a[i] = new TextView(MainActivity.this);
+                                place_text.a[i] = new TextView(MainActivity.this);
+                                username_text.a[i].setText(username);
+                                reputation_text.a[i].setText(reputation);
+                                place_text.a[i].setText(String.valueOf(final_i));
+                                entry_linear.a[i].setLayoutParams(linearLayout.getLayoutParams());
+                                username_text.a[i].setLayoutParams(entry_linear.a[i].getLayoutParams());
+                                reputation_text.a[i].setLayoutParams(entry_linear.a[i].getLayoutParams());
+                                place_text.a[i].setLayoutParams(entry_linear.a[i].getLayoutParams());
+                                linearLayout.addView(entry_linear.a[i]);
+                                entry_linear.a[i].addView(username_text.a[i]);
+                                entry_linear.a[i].addView(reputation_text.a[i]);
+                                entry_linear.a[i].addView(place_text.a[i]);
+                            }
+                        } catch (IndexOutOfBoundsException e) {
+                            Toast.makeText(MainActivity.this, "Не удалось запросить информацию о рейтинге", Toast.LENGTH_SHORT).show();
+                        }
+                    }}));
         } else if (id == R.id.nav_account)
         {
             if(item.getTitle().equals("Зарегистрироваться")) {

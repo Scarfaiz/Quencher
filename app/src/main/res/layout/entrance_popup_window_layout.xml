@@ -2,8 +2,8 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/popup_custom_border"
     android:layout_marginEnd="16dp"
@@ -11,24 +11,31 @@
     android:layout_marginTop="16dp"
     android:layout_marginBottom="16dp">
 
-
-    <ScrollView
+    <TextView
+        android:id="@+id/popup_username"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="Вы получили 5 бутылок и 1 крышку за вход в приложение!"
+        android:textColor="@color/colorAccent"
+        android:textSize="24sp"
         android:layout_marginEnd="16dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="16dp" />
 
-        <LinearLayout
-            android:id="@+id/leaderboard_scroll"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </ScrollView>
+    <TextView
+        android:id="@+id/popup_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colorAccent"
+        android:textSize="20sp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginStart="16dp"
+        android:text="Награда дается каждый день, не пропустите следующую!" />
+
 
     <Button
-        android:id="@+id/popup_leaderboard_ok"
+        android:id="@+id/popup_entrance_ok"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Ок"

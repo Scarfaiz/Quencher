@@ -2,8 +2,8 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/popup_custom_border"
     android:layout_marginEnd="16dp"
@@ -16,21 +16,29 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="TextView"
-        tools:layout_editor_absoluteX="25dp"
-        tools:layout_editor_absoluteY="16dp" />
+        android:textColor="@color/colorAccent"
+        android:textSize="24sp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp" />
 
     <TextView
         android:id="@+id/popup_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="TextView"
-        tools:layout_editor_absoluteX="25dp"
-        tools:layout_editor_absoluteY="55dp" />
+        android:layout_marginEnd="16dp"
+        android:layout_marginStart="16dp"
+        android:text="Алкаш" />
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="350dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:layout_marginEnd="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp">
 
         <TextView
             android:id="@+id/textView4"
@@ -38,8 +46,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Бутылки"
-            tools:layout_editor_absoluteX="25dp"
-            tools:layout_editor_absoluteY="101dp" />
+            android:textColor="@color/colorAccent"
+            android:textSize="18sp" />
 
         <TextView
             android:id="@+id/textView5"
@@ -47,14 +55,19 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Крышки"
-            tools:layout_editor_absoluteX="176dp"
-            tools:layout_editor_absoluteY="101dp" />
+            android:textColor="@color/colorAccent"
+            android:textSize="18sp"
+            android:layout_gravity="end"/>
     </LinearLayout>
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="350dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginStart="16dp">
 
         <TextView
             android:id="@+id/popup_rep"
@@ -62,8 +75,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="TextView"
-            tools:layout_editor_absoluteX="25dp"
-            tools:layout_editor_absoluteY="140dp" />
+            android:textColor="@color/colorAccent"
+            android:textSize="30sp" />
 
         <TextView
             android:id="@+id/popup_coins"
@@ -71,8 +84,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="TextView"
-            tools:layout_editor_absoluteX="176dp"
-            tools:layout_editor_absoluteY="140dp" />
+            android:textColor="@color/colorAccent"
+            android:textSize="30sp"
+            android:layout_gravity="end"/>
     </LinearLayout>
 
     <Button
@@ -80,8 +94,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Ок"
-        android:layout_gravity="bottom|end"
-        tools:layout_editor_absoluteX="161dp"
-        tools:layout_editor_absoluteY="187dp" />
+        android:layout_gravity="end"
+        android:layout_marginBottom="16dp" />
 
 </LinearLayout>
