@@ -57,7 +57,8 @@ public class SearchForMarkersTask extends AsyncTask<String, List<String>, List<S
                 markers_found.add(0, json.getString("id"));
                 markers_found.add(1, json.getString("latitude"));
                 markers_found.add(2, json.getString("longitude"));
-                markers_found.add(3, String.valueOf(json.length()));
+                markers_found.add(3, json.getString("confirmation_status"));
+                markers_found.add(4, String.valueOf(json.length()));
                 return markers_found;
             } else {
                 // продукт с pid не найден

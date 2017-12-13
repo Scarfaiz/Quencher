@@ -32,6 +32,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Ок"
+        android:background="@color/colorPrimaryDark"
         android:layout_gravity="bottom|end"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="16dp" />

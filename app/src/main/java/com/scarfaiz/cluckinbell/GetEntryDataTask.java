@@ -1,6 +1,8 @@
 package com.scarfaiz.cluckinbell;
 
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import org.apache.http.NameValuePair;
@@ -18,12 +20,14 @@ class GetEntryDataTask extends AsyncTask<String, List<String>, List<String>> {
     private static final String TAG_SUCCESS = "success";
     private static String server_address;
     private static int id;
+    private static String username;
     private static String TAG = "LogDebug";
     private AsyncResponse delegate = null;
 
-    public GetEntryDataTask(String server_address, int id, AsyncResponse delegate) {
+    public GetEntryDataTask(String server_address, int id, String username, AsyncResponse delegate) {
         GetEntryDataTask.server_address = server_address;
         GetEntryDataTask.id = id;
+        GetEntryDataTask.username = username;
         this.delegate = delegate;
     }
 
@@ -33,10 +37,10 @@ class GetEntryDataTask extends AsyncTask<String, List<String>, List<String>> {
         Log.d(TAG, "Sending JSON request");
         JSONParser jsonParser = new JSONParser();
         int success;
-        // Список параметров
         List<NameValuePair> entry_data = new ArrayList<>();
         List<String> marker_data = new ArrayList<>();
         entry_data.add(new BasicNameValuePair("id", String.valueOf(id)));
+        entry_data.add(new BasicNameValuePair("username", username));
         Log.d(TAG, "server address: " + server_address + "   enrty data: " + entry_data.toString());
         JSONObject json = jsonParser.makeHttpRequest(server_address, "GET", entry_data);
         try {
@@ -55,6 +59,8 @@ class GetEntryDataTask extends AsyncTask<String, List<String>, List<String>> {
                 marker_data.add(6, json.getString("latitude"));
                 marker_data.add(7, json.getString("longitude"));
                 marker_data.add(8, json.getString("username"));
+                marker_data.add(9, json.getString("valid"));
+                marker_data.add(10, json.getString("id"));
                 return marker_data;
             } else {
                 // продукт с pid не найден

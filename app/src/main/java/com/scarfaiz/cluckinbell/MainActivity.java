@@ -8,8 +8,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.VectorDrawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -40,6 +44,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -49,7 +54,6 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -91,6 +95,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private String address;
     private LinearLayout bottom_sheet_comments_layout;
     private LinearLayout bottom_sheet_rel;
+    public Marker my_location_marker;
 
 
     @Override
@@ -98,46 +103,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onCreate(savedInstanceState);
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         setContentView(R.layout.activity_main);
-        if(!prefs.contains("username")) {
-            startActivity(new Intent(MainActivity.this, LoginActivity.class));
-        }else if(!prefs.getString("username", "skipped").equals("skipped"))
-        {
-            NavigationView navigationView = findViewById(R.id.nav_view);
-            Menu menu = navigationView.getMenu();
-            MenuItem nav_account = menu.findItem(R.id.nav_account);
-            nav_account.setTitle("Информация об аккаунте");
-        }
-        final String entrance_server_address = "http://178.162.41.115/get_daily.php";
-        List<NameValuePair> username_data = new ArrayList<>();
-        username_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
-        executeAsyncTask(new EntranceTask(entrance_server_address, username_data, new EntranceTask.AsyncResponse() {
-            @Override
-            public void processFinish(String output) {
-                if(output.equals("1"))
-                {
-                    CoordinatorLayout mainLayout = findViewById(R.id.coordinatorlayout);
-                    LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-                    final View popupView = inflater.inflate(R.layout.entrance_popup_window_layout, null);
-                    popupView.setAnimation(AnimationUtils.loadAnimation(MainActivity.this, R.anim.popup_window_animation));
-                    final PopupWindow popup_window = new PopupWindow(popupView);
-                    popup_window.setWidth(FrameLayout.LayoutParams.WRAP_CONTENT);
-                    popup_window.setHeight(FrameLayout.LayoutParams.WRAP_CONTENT);
-                    popup_window.setFocusable(true);
-                    popup_window.setBackgroundDrawable(new BitmapDrawable());
-                    popup_window.setOutsideTouchable(false);
-                    popup_window.showAtLocation(mainLayout, Gravity.CENTER, 0 , 0);
-                    final Button popup_entrance_ok = popupView.findViewById(R.id.popup_entrance_ok);
-                    popup_entrance_ok.setOnClickListener(new View.OnClickListener() {
-                        @SuppressLint("ShowToast")
-                        @Override
-                        public void onClick(View view) {
-                            popup_window.setAnimationStyle(R.anim.popup_window_animation);
-                            popup_window.dismiss();
-                        }
-                    });
-                }
-            }
-        }));
         Context ctx = getApplicationContext();
         Configuration.getInstance().load(ctx, prefs);
         Configuration.getInstance().setUserAgentValue("CB");
@@ -150,26 +115,82 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mapController.setZoom(13);
         GeoPoint startPoint = new GeoPoint(prefs.getFloat("Latitude", 59.93863f), prefs.getFloat("Longitude", 30.31413f));
         Log.d(tag, "Loaded Geoposition: " + String.valueOf(prefs.getFloat("Latitude", 59.93863f)) + "  " + String.valueOf(prefs.getFloat("Longitude", 30.31413f)));
-        mapController.setCenter(startPoint);
+        mapController.animateTo(startPoint);
+        my_location_marker = new Marker(map);
+        final BitmapFactory.Options person_options = new BitmapFactory.Options();
+        person_options.inSampleSize = 4;
+        final Drawable person_drawable = getResources().getDrawable(R.drawable.ic_my_location_marker);
+        Bitmap person_bitmap = Bitmap.createBitmap(person_drawable.getIntrinsicWidth(),
+                person_drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(person_bitmap);
+        person_drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        person_drawable.draw(canvas);
+        my_location_marker.setIcon(person_drawable);
+        my_location_marker.setPosition(startPoint);
+        my_location_marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+        map.getOverlays().add(my_location_marker);
+        map.invalidate();
         geodata_updated = false;
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         assert locationManager != null;
         locationManager.removeUpdates(myLocationListener);
-        MyLocationNewOverlay oMapLocationOverlay = new MyLocationNewOverlay(map);
+        if(!prefs.contains("username")) {
+            startActivity(new Intent(MainActivity.this, LoginActivity.class));
+        }else if(!prefs.getString("username", "skipped").equals("skipped")) {
+            NavigationView navigationView = findViewById(R.id.nav_view);
+            Menu menu = navigationView.getMenu();
+            MenuItem nav_account = menu.findItem(R.id.nav_account);
+            nav_account.setTitle("Информация об аккаунте");
+            final String entrance_server_address = "http://178.162.41.115/get_daily.php";
+            List<NameValuePair> username_data = new ArrayList<>();
+            username_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
+            executeAsyncTask(new EntranceTask(entrance_server_address, username_data, new EntranceTask.AsyncResponse() {
+                @Override
+                public void processFinish(String output) {
+                    if (output.equals("1")) {
+                        CoordinatorLayout mainLayout = findViewById(R.id.coordinatorlayout);
+                        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+                        final View popupView = inflater.inflate(R.layout.entrance_popup_window_layout, null);
+                        popupView.setAnimation(AnimationUtils.loadAnimation(MainActivity.this, R.anim.popup_window_animation));
+                        final PopupWindow popup_window = new PopupWindow(popupView);
+                        popup_window.setWidth(FrameLayout.LayoutParams.WRAP_CONTENT);
+                        popup_window.setHeight(FrameLayout.LayoutParams.WRAP_CONTENT);
+                        popup_window.setFocusable(true);
+                        popup_window.setBackgroundDrawable(new BitmapDrawable());
+                        popup_window.setOutsideTouchable(false);
+                        popup_window.showAtLocation(mainLayout, Gravity.CENTER, 0, 0);
+                        final Button popup_entrance_ok = popupView.findViewById(R.id.popup_entrance_ok);
+                        popup_entrance_ok.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                popup_window.setAnimationStyle(R.anim.popup_window_animation);
+                                popup_window.dismiss();
+                            }
+                        });
+                    }
+                }
+            }));
+            final View nav_header = navigationView.getHeaderView(0);
+            final TextView nav_title = nav_header.findViewById(R.id.nav_title);
+            final TextView nav_subtitle = nav_header.findViewById(R.id.nav_subtitle);
+            nav_title.setText(prefs.getString("username", "Имя пользователя"));
+            nav_subtitle.setText(prefs.getString("status", "Участник закрытого бета-теста"));
+        }
+        /*MyLocationNewOverlay oMapLocationOverlay = new MyLocationNewOverlay(map);
         oMapLocationOverlay.enableMyLocation();
-        oMapLocationOverlay.setDrawAccuracyEnabled(true);
-        oMapLocationOverlay.setDirectionArrow(BitmapFactory.decodeResource(getResources(), R.drawable.direction_arrow),
-                BitmapFactory.decodeResource(getResources(), R.drawable.direction_arrow));
+        oMapLocationOverlay.setDrawAccuracyEnabled(false);
+        oMapLocationOverlay.getEnableAutoStop();
         map.getOverlays().add(oMapLocationOverlay);
-        //map.postInvalidate();
-        /*person_options = new BitmapFactory.Options();
+        final BitmapFactory.Options person_options = new BitmapFactory.Options();
         person_options.inSampleSize = 4;
-        person_drawable = getResources().getDrawable(R.drawable.ic_menu_mylocation);
-        person_bitmap = ((BitmapDrawable) person_drawable).getBitmap();
+        final Drawable person_drawable = getResources().getDrawable(R.drawable.ic_my_location_marker);
+        Bitmap person_bitmap = Bitmap.createBitmap(person_drawable.getIntrinsicWidth(),
+                person_drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(person_bitmap);
+        person_drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        person_drawable.draw(canvas);
         oMapLocationOverlay.setPersonIcon(person_bitmap);
-        if (oMapLocationOverlay.isEnabled())
-            Toast.makeText(getBaseContext(),"Enabled", Toast.LENGTH_LONG).show();*/
-
+        oMapLocationOverlay.setDirectionArrow(person_bitmap, person_bitmap);*/
         final Toolbar toolbar = findViewById(R.id.toolbar);
         //setSupportActionBar(toolbar);
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -238,9 +259,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                         Double latitude;
                                                         Double longitude;
                                                         int id;
+                                                        int conf_status;
                                                         String[] latitude_split = output.get(1).split("\\s+");
                                                         String[] longitude_split = output.get(2).split("\\s+");
                                                         String[] id_split = output.get(0).split("\\s+");
+                                                        String[] conf_status_split = output.get(3).split("\\s+");
                                                         final SearchForMarkersTask.GenSet<Marker> startMarker = new SearchForMarkersTask.GenSet<>(Marker.class, id_split.length);
                                                         final String entry_data_server_address = "http://178.162.41.115/get_entry_details.php";
                                                         final String comments_data_server_address = "http://178.162.41.115/get_comments.php";
@@ -248,94 +271,101 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                             latitude = Double.valueOf(latitude_split[i]);
                                                             longitude = Double.valueOf(longitude_split[i]);
                                                             id = Integer.valueOf(id_split[i]);
+                                                            conf_status = Integer.valueOf(conf_status_split[i]);
                                                             Log.d(tag, "Split markers data info: " + latitude + " " + longitude + " " + id + " with array length: " + id_split.length);
                                                             GeoPoint p = new GeoPoint(latitude, longitude);
                                                             startMarker.a[i] = new Marker(map);
                                                             startMarker.a[i].setPosition(p);
                                                             startMarker.a[i].setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
                                                             startMarker.a[i].setTitle(String.valueOf(id));
+                                                            if(conf_status>=200)
+                                                                startMarker.a[i].setIcon(getResources().getDrawable(R.drawable.ic_marker_confirmed));
+                                                            else
+                                                                startMarker.a[i].setIcon(getResources().getDrawable(R.drawable.ic_marker_unconfirmed));
                                                             final int final_i = i;
                                                             map.getOverlays().add(startMarker.a[i]);
                                                             map.invalidate();
                                                             startMarker.a[i].setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
                                                                 @Override
                                                                 public boolean onMarkerClick(Marker item, MapView arg1) {
+                                                                    bottom_sheet_rel.removeAllViews();
                                                                     bottom_sheet_button_desc.setText("Добавить комментарий");
+                                                                    behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
                                                                     bottom_sheet_rel.addView(bottom_sheet_pb);
                                                                     SharedPreferences.Editor editor = prefs.edit();
                                                                     editor.putInt("marker_id", Integer.valueOf(startMarker.a[final_i].getTitle()));
                                                                     editor.apply();
-                                                                    ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
-                                                                    params.height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 620, getResources().getDisplayMetrics());
+                                                                    /*ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
+                                                                    params.height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 420, getResources().getDisplayMetrics());
                                                                     params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-                                                                    bottom_sheet_comments_layout.setLayoutParams(params);
-                                                                    executeAsyncTask(new GetEntryDataTask(entry_data_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), new GetEntryDataTask.AsyncResponse() {
+                                                                    bottom_sheet_comments_layout.setLayoutParams(params);*/
+                                                                    executeAsyncTask(new GetEntryDataTask(entry_data_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), prefs.getString("username", "skipped"), new GetEntryDataTask.AsyncResponse() {
 
                                                                         @Override
-                                                                        public void processFinish(List<String> output) {
+                                                                        public void processFinish(final List<String> output) {
                                                                             try{
                                                                             bottom_sheet_rel.removeAllViews();
-                                                                            final Button confirm = new Button(MainActivity.this);
-                                                                            final Button dismiss = new Button(MainActivity.this);
-                                                                            confirm.setText("Подтвердить место");
-                                                                            dismiss.setText("Пожаловаться");
-                                                                            confirm.setLayoutParams(bottom_sheet_rel.getLayoutParams());
-                                                                            dismiss.setLayoutParams(bottom_sheet_rel.getLayoutParams());
-                                                                            bottom_sheet_rel.addView(confirm);
-                                                                            bottom_sheet_rel.addView(dismiss);
-                                                                            final String conf_server_address = "http://178.162.41.115/change_entry_status.php";
-                                                                            confirm.setOnClickListener(new View.OnClickListener() {
-                                                                                @Override
-                                                                                public void onClick(View view) {
-                                                                                    final List<NameValuePair> conf_data = new ArrayList<>();
-                                                                                    conf_data.add(new BasicNameValuePair("id", String.valueOf(final_i)));
-                                                                                    conf_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
-                                                                                    final String account_data_server_address = "http://178.162.41.115/get_account_data.php";
-                                                                                    executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), new GetAccountDataTask.AsyncResponse() {
+                                                                            bottom_sheet_comments_layout.removeAllViews();
+                                                                                if((!prefs.getString("username", "skipped").equals("skipped")) && output.get(9).equals("1") && (!output.get(8).equals(prefs.getString("username", "skipped")))) {
+                                                                                    final Button confirm = new Button(MainActivity.this);
+                                                                                    final Button dismiss = new Button(MainActivity.this);
+                                                                                    confirm.setText("Подтвердить место");
+                                                                                    dismiss.setText("Пожаловаться");
+                                                                                    confirm.setBackground(getResources().getDrawable(R.color.colorPrimaryDark));
+                                                                                    dismiss.setBackground(getResources().getDrawable(R.color.colorPrimaryDark));
+                                                                                    confirm.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+                                                                                    dismiss.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+                                                                                    bottom_sheet_rel.addView(confirm);
+                                                                                    bottom_sheet_rel.addView(dismiss);
+                                                                                    final String conf_server_address = "http://178.162.41.115/change_entry_status.php";
+                                                                                    confirm.setOnClickListener(new View.OnClickListener() {
                                                                                         @Override
-                                                                                        public void processFinish(List<String> output) {
-                                                                                            try {
-                                                                                                conf_data.add(new BasicNameValuePair("confirmation_status", output.get(0)));
-                                                                                                executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data));
-                                                                                                confirm.setEnabled(false);
-                                                                                                dismiss.setEnabled(false);
-                                                                                                Toast.makeText(MainActivity.this, "+ певко", Toast.LENGTH_SHORT).show();
-                                                                                            }
-                                                                                            catch (IndexOutOfBoundsException e)
-                                                                                            {
-                                                                                                Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
-                                                                                            }
+                                                                                        public void onClick(View view) {
+                                                                                            final List<NameValuePair> conf_data = new ArrayList<>();
+                                                                                            conf_data.add(new BasicNameValuePair("id",output.get(10)));
+                                                                                            conf_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
+                                                                                            final String account_data_server_address = "http://178.162.41.115/get_account_data.php";
+                                                                                            executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), new GetAccountDataTask.AsyncResponse() {
+                                                                                                @Override
+                                                                                                public void processFinish(List<String> output) {
+                                                                                                    try {
+                                                                                                        conf_data.add(new BasicNameValuePair("confirmation_status", output.get(0)));
+                                                                                                        executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data));
+                                                                                                        confirm.setEnabled(false);
+                                                                                                        dismiss.setEnabled(false);
+                                                                                                        Toast.makeText(MainActivity.this, "Спасибо за Ваш голос! Вы получили несколько бутылок", Toast.LENGTH_SHORT).show();
+                                                                                                    } catch (IndexOutOfBoundsException e) {
+                                                                                                        Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
+                                                                                                    }
+                                                                                                }
+                                                                                            }));
                                                                                         }
-                                                                                    }));
+                                                                                    });
+                                                                                    dismiss.setOnClickListener(new View.OnClickListener() {
+                                                                                        @Override
+                                                                                        public void onClick(View view) {
+                                                                                            final List<NameValuePair> conf_data = new ArrayList<>();
+                                                                                            conf_data.add(new BasicNameValuePair("id", output.get(10)));
+                                                                                            conf_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
+                                                                                            final String account_data_server_address = "http://178.162.41.115/get_account_data.php";
+                                                                                            executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), new GetAccountDataTask.AsyncResponse() {
+                                                                                                @Override
+                                                                                                public void processFinish(List<String> output) {
+                                                                                                    try {
+                                                                                                        conf_data.add(new BasicNameValuePair("confirmation_status", "-" + output.get(0)));
+                                                                                                        executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data));
+                                                                                                        confirm.setEnabled(false);
+                                                                                                        dismiss.setEnabled(false);
+                                                                                                        Toast.makeText(MainActivity.this, "Спасибо за Ваш голос! Вы получили несколько бутылок", Toast.LENGTH_SHORT).show();
+                                                                                                    } catch (IndexOutOfBoundsException e) {
+                                                                                                        Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
+                                                                                                    }
+                                                                                                }
+                                                                                            }));
+                                                                                        }
+                                                                                    });
                                                                                 }
-                                                                            });
-                                                                            dismiss.setOnClickListener(new View.OnClickListener() {
-                                                                                    @Override
-                                                                                    public void onClick(View view) {
-                                                                                        final List<NameValuePair> conf_data = new ArrayList<>();
-                                                                                        conf_data.add(new BasicNameValuePair("id", String.valueOf(final_i)));
-                                                                                        conf_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
-                                                                                        final String account_data_server_address = "http://178.162.41.115/get_account_data.php";
-                                                                                        executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), new GetAccountDataTask.AsyncResponse() {
-                                                                                            @Override
-                                                                                            public void processFinish(List<String> output) {
-                                                                                                try {
-                                                                                                    conf_data.add(new BasicNameValuePair("confirmation_status", "-" + output.get(0)));
-                                                                                                    executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data));
-                                                                                                    confirm.setEnabled(false);
-                                                                                                    dismiss.setEnabled(false);
-                                                                                                    Toast.makeText(MainActivity.this, "+ певко", Toast.LENGTH_SHORT).show();
-                                                                                                }
-                                                                                                catch (IndexOutOfBoundsException e)
-                                                                                                {
-                                                                                                    Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
-                                                                                                }
-                                                                                            }
-                                                                                        }));
-                                                                                    }
-                                                                            });
                                                                             marker_geopostition = new GeoPoint(Double.valueOf(output.get(6)), Double.valueOf(output.get(7)));
-                                                                            behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
                                                                             bottomSheetTextView.setText(output.get(0));
                                                                             bottomSheetTextViewSubtitle.setText(output.get(1));
                                                                             TextView wh_textView = new TextView(MainActivity.this);
@@ -354,10 +384,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                                             r_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
                                                                                 bottom_sheet_rel.addView(wh_textView);
                                                                                 bottom_sheet_rel.addView(r_textView);
-                                                                                ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
+                                                                                /*ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
                                                                                 params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
                                                                                 params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-                                                                                bottom_sheet_comments_layout.setLayoutParams(params);
+                                                                                bottom_sheet_comments_layout.setLayoutParams(params);*/
                                                                                 TextView header = new TextView(MainActivity.this);
                                                                                 header.setText("Комментарии:");
                                                                                 header.setTextSize(18);
@@ -420,13 +450,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 switch (newState) {
                     case BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED:
                         Log.d("bottomsheet-", "STATE_COLLAPSED");
-                        int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
+                        /*int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
                         if (permission == PermissionChecker.PERMISSION_GRANTED) {
                             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
                             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
                             Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                            updateLoc(lastLocation);
-                        }
+                            GeoPoint last_location_to_animate = new GeoPoint(lastLocation.getLatitude() - 0.0025, lastLocation.getLongitude());
+                            mapController.animateTo(last_location_to_animate);
+                        }*/
                         toolbar.setVisibility(View.VISIBLE);
                         LocButton.setVisibility(View.VISIBLE);
                         SearchButton.setVisibility(View.VISIBLE);
@@ -441,6 +472,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     case BottomSheetBehaviorGoogleMapsLike.STATE_ANCHOR_POINT:
                         toolbar.setVisibility(View.VISIBLE);
                         GeoPoint marker_geoposition_to_animate = new GeoPoint(marker_geopostition.getLatitude() - 0.0025, marker_geopostition.getLongitude());
+                        mapController.setZoom(17);
                         mapController.animateTo(marker_geoposition_to_animate);
                         Log.d("bottomsheet-", "STATE_ANCHOR_POINT");
                         break;
@@ -509,7 +541,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         Toast.makeText(MainActivity.this, "Для добавления места необходима регистрация", Toast.LENGTH_SHORT).show();
                 }
                 else if(bottom_sheet_button_desc.getText() == "Добавить комментарий"){
+                    if(!prefs.getString("username", "skipped").equals("skipped"))
                     onButtonShowPopupWindowClick(findViewById(R.id.coordinatorlayout), prefs.getInt("marker_id", 0));
+                    else
+                        Toast.makeText(MainActivity.this, "Для добавления комментария необходима регистрация", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -571,14 +606,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 Log.d(tag, "Marker geoposition: " + String.valueOf(p.getLatitude() - prefs.getFloat("Latitude", 59.93863f)) + ", " + String.valueOf(p.getLongitude() - prefs.getFloat("Longitude", 30.31413f)));
                 bottom_sheet_rel.removeAllViews();
                 bottom_sheet_comments_layout.removeAllViews();
-                ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
+                /*ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
                 params.height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 620, getResources().getDisplayMetrics());
                 params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-                bottom_sheet_comments_layout.setLayoutParams(params);
+                bottom_sheet_comments_layout.setLayoutParams(params);*/
                 TextView elements_textView = new TextView(MainActivity.this);
                 elements_textView.setText("По этой точке еще нет информации о доступных магазинах. Вы можете добавить новое место, нажав на кнопку.");
                 elements_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
                 bottom_sheet_rel.addView(elements_textView);
+                startMarker.setIcon(getResources().getDrawable(R.drawable.ic_marker_confirmed));
                 startMarker.setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
                     @Override
                     public boolean onMarkerClick(Marker item, MapView arg1)
@@ -643,6 +679,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 GeoPoint locGeoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
                 mapController.setCenter(locGeoPoint);
                 mapController.zoomTo(17);
+                my_location_marker.setPosition(locGeoPoint);
                 map.invalidate();
                 prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
                 SharedPreferences.Editor editor = prefs.edit();
@@ -653,6 +690,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf(prefs.getFloat("Longitude", Longitude)));
                 editor.apply();
                 geodata_updated = true;
+            }
+            else {
+                GeoPoint locGeoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
+                my_location_marker.setPosition(locGeoPoint);
             }
         }
 
@@ -747,6 +788,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // TODO Auto-generated method stub
         super.onPause();
         locationManager.removeUpdates(myLocationListener);
+
     }
 
     private void updateLoc(Location loc) {
@@ -754,6 +796,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
             GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
             mapController.animateTo(locGeoPoint);
+            my_location_marker.setPosition(locGeoPoint);
             prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
             SharedPreferences.Editor editor = prefs.edit();
             float Latitude = (float) loc.getLatitude();
@@ -937,6 +980,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                 username_text.a[i] = new TextView(MainActivity.this);
                                 reputation_text.a[i] = new TextView(MainActivity.this);
                                 place_text.a[i] = new TextView(MainActivity.this);
+                                username_text.a[i].setWidth(400);
+                                username_text.a[i].setTextSize(25);
+                                reputation_text.a[i].setWidth(200);
+                                reputation_text.a[i].setTextSize(25);
+                                place_text.a[i].setWidth(100);
+                                place_text.a[i].setTextSize(25);
                                 username_text.a[i].setText(username);
                                 reputation_text.a[i].setText(reputation);
                                 place_text.a[i].setText(String.valueOf(final_i));
@@ -945,9 +994,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                 reputation_text.a[i].setLayoutParams(entry_linear.a[i].getLayoutParams());
                                 place_text.a[i].setLayoutParams(entry_linear.a[i].getLayoutParams());
                                 linearLayout.addView(entry_linear.a[i]);
+                                entry_linear.a[i].addView(place_text.a[i]);
                                 entry_linear.a[i].addView(username_text.a[i]);
                                 entry_linear.a[i].addView(reputation_text.a[i]);
-                                entry_linear.a[i].addView(place_text.a[i]);
                             }
                         } catch (IndexOutOfBoundsException e) {
                             Toast.makeText(MainActivity.this, "Не удалось запросить информацию о рейтинге", Toast.LENGTH_SHORT).show();
@@ -990,6 +1039,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     @Override
                     public void processFinish(List<String> output) {
                         try {
+                            popup_username_status.setText(prefs.getString("status", "Участник закрытого бета-теста"));
                             popup_rep.setText(output.get(0));
                             popup_coins.setText(output.get(1));
                         }
