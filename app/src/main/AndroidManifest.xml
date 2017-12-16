@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.scarfaiz.cluckinbell">
+    package="com.neatherbench.quencher">
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -24,7 +24,7 @@
         android:theme="@style/AppTheme"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning">
         <activity
-            android:name=".MainActivity"
+            android:name="com.neatherbench.com.neatherbench.quencher.MainActivity"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -33,25 +33,25 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".NewMarkerActivity"
+            android:name="com.neatherbench.com.neatherbench.quencher.NewMarkerActivity"
             android:screenOrientation="portrait" />
         <activity
-            android:name=".LoginActivity"
+            android:name="com.neatherbench.com.neatherbench.quencher.LoginActivity"
             android:label="Вход в аккаунт"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="com.neatherbench.com.neatherbench.quencher.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.scarfaiz.cluckinbell.MainActivity" />
+                android:value="com.neatherbench.com.neatherbench.quencher.MainActivity" />
         </activity>
         <activity
-            android:name=".SignupActivity"
+            android:name="com.neatherbench.com.neatherbench.quencher.SignupActivity"
             android:label="Регистрация"
             android:screenOrientation="portrait"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName="com.neatherbench.com.neatherbench.quencher.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.scarfaiz.cluckinbell.MainActivity" />
+                android:value="com.neatherbench.com.neatherbench.quencher.MainActivity" />
         </activity>
     </application>
 

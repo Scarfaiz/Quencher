@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">XXX</string>
+    <string name="app_name">Quencher</string>
     <string-array name="marker_o_h_spinner_items">
         <item>круглосуточно</item>
         <item>до 22:00</item>
