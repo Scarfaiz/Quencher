@@ -1,5 +1,7 @@
 package com.neatherbench.quencher;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -21,10 +23,13 @@ class GetCommentsTask extends AsyncTask<String, List<String>, List<String>> {
     private static int id;
     private static String TAG = "LogDebug";
     private AsyncResponse delegate = null;
+    @SuppressLint("StaticFieldLeak")
+    private static Context context;
 
-    public GetCommentsTask(String server_address, int id, AsyncResponse delegate) {
+    public GetCommentsTask(String server_address, int id, Context context, AsyncResponse delegate) {
         GetCommentsTask.server_address = server_address;
         GetCommentsTask.id = id;
+        GetCommentsTask.context = context;
         this.delegate = delegate;
     }
 
@@ -32,7 +37,7 @@ class GetCommentsTask extends AsyncTask<String, List<String>, List<String>> {
     protected List<String> doInBackground(String[] params) {
 
         Log.d(TAG, "Sending JSON request");
-        JSONParser jsonParser = new JSONParser();
+        JSONParser jsonParser = new JSONParser(context);
         int success;
         // Список параметров
         List<NameValuePair> entry_data = new ArrayList<>();

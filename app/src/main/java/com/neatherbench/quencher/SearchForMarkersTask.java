@@ -1,5 +1,7 @@
 package com.neatherbench.quencher;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -22,12 +24,15 @@ public class SearchForMarkersTask extends AsyncTask<String, List<String>, List<S
     private static String latitude;
     private static String longitude;
     private AsyncResponse delegate = null;
+    @SuppressLint("StaticFieldLeak")
+    private static Context context;
 
 
-    public SearchForMarkersTask(String latitude, String longitude, String city, AsyncResponse delegate) {
+    public SearchForMarkersTask(String latitude, String longitude, String city, Context context, AsyncResponse delegate) {
         SearchForMarkersTask.latitude = latitude;
         SearchForMarkersTask.longitude = longitude;
         SearchForMarkersTask.city = city;
+        SearchForMarkersTask.context = context;
         this.delegate = delegate;
     }
 
@@ -37,9 +42,9 @@ public class SearchForMarkersTask extends AsyncTask<String, List<String>, List<S
 
     @Override
     protected List<String> doInBackground(String[] params) {
-        String server_address = "http://178.162.41.115/search_for_markers.php";
+        String server_address = "https://178.162.41.115/search_for_markers.php";
         Log.d(TAG, "Sending JSON request");
-        JSONParser jsonParser = new JSONParser();
+        JSONParser jsonParser = new JSONParser(context);
         int success;
         // Список параметров
         List<NameValuePair> entry_data = new ArrayList<>();

@@ -1,5 +1,7 @@
 package com.neatherbench.quencher;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -21,11 +23,14 @@ class GetEntryDataTask extends AsyncTask<String, List<String>, List<String>> {
     private static String username;
     private static String TAG = "LogDebug";
     private AsyncResponse delegate = null;
+    @SuppressLint("StaticFieldLeak")
+    private static Context context;
 
-    public GetEntryDataTask(String server_address, int id, String username, AsyncResponse delegate) {
+    public GetEntryDataTask(String server_address, int id, String username, Context context, AsyncResponse delegate) {
         GetEntryDataTask.server_address = server_address;
         GetEntryDataTask.id = id;
         GetEntryDataTask.username = username;
+        GetEntryDataTask.context = context;
         this.delegate = delegate;
     }
 
@@ -33,7 +38,7 @@ class GetEntryDataTask extends AsyncTask<String, List<String>, List<String>> {
     protected List<String> doInBackground(String[] params) {
 
         Log.d(TAG, "Sending JSON request");
-        JSONParser jsonParser = new JSONParser();
+        JSONParser jsonParser = new JSONParser(context);
         int success;
         List<NameValuePair> entry_data = new ArrayList<>();
         List<String> marker_data = new ArrayList<>();

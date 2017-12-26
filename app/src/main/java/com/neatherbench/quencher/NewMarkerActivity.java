@@ -56,7 +56,7 @@ public class NewMarkerActivity extends AppCompatActivity {
         String address = b.getString("address");
         reputation = b.getString("reputation");
         marker_address.setText(address);
-        server_address = "http://178.162.41.115/add_entry.php";
+        server_address = "https://178.162.41.115/add_entry.php";
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.setStatusBarColor(ContextCompat.getColor(this,R.color.colorPrimaryDark));
@@ -86,7 +86,7 @@ public class NewMarkerActivity extends AppCompatActivity {
         marker_data.add(new BasicNameValuePair("longitude", longitude.toString()));
 
         if(marker_name.getText() !=null && marker_address.getText() !=null) {
-            executeAsyncTask(new AddEntryTask(server_address, marker_data));
+            executeAsyncTask(new AddEntryTask(server_address, marker_data, NewMarkerActivity.this.getApplicationContext()));
             Toast.makeText(NewMarkerActivity.this, "Ваша заяка отправлена на модерацию", Toast.LENGTH_SHORT).show();
             this.finish();
         }

@@ -109,10 +109,10 @@ public class SignupActivity extends AppCompatActivity {
         login_data.add(new BasicNameValuePair("email", email));
         login_data.add(new BasicNameValuePair("username", name));
         login_data.add(new BasicNameValuePair("password", password));
-        final String new_account_server_address = "http://178.162.41.115/add_account.php";
+        final String new_account_server_address = "https://178.162.41.115/add_account.php";
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         final SharedPreferences.Editor editor = prefs.edit();
-        executeAsyncTask(new SignupTask(new_account_server_address, login_data,
+        executeAsyncTask(new SignupTask(new_account_server_address, login_data, SignupActivity.this.getApplicationContext(),
                 new SignupTask.AsyncResponse() {
 
 

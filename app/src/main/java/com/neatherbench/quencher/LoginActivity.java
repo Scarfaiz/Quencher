@@ -2,6 +2,7 @@ package com.neatherbench.quencher;
 
 import android.annotation.TargetApi;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -9,8 +10,6 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-
-import android.content.Intent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -102,11 +101,11 @@ public class LoginActivity extends AppCompatActivity {
         List<NameValuePair> login_data = new ArrayList<>();
         login_data.add(new BasicNameValuePair("email", email));
         login_data.add(new BasicNameValuePair("password", password));
-        final String login_server_address = "http://178.162.41.115/login.php";
+        final String login_server_address = "https://178.162.41.115/login.php";
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         final SharedPreferences.Editor editor = prefs.edit();
-        executeAsyncTask(new LoginTask(login_server_address, login_data,
+        executeAsyncTask(new LoginTask(login_server_address, login_data, LoginActivity.this.getApplicationContext(),
                 new LoginTask.AsyncResponse() {
 
 

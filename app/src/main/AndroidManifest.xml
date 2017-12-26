@@ -12,19 +12,17 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <!-- To auto-complete the email text field in the login form with the user's emails -->
-    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.READ_PROFILE" />
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning">
         <activity
-            android:name="com.neatherbench.com.neatherbench.quencher.MainActivity"
+            android:name="com.neatherbench.quencher.MainActivity"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -33,25 +31,25 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.neatherbench.com.neatherbench.quencher.NewMarkerActivity"
+            android:name="com.neatherbench.quencher.NewMarkerActivity"
             android:screenOrientation="portrait" />
         <activity
-            android:name="com.neatherbench.com.neatherbench.quencher.LoginActivity"
+            android:name="com.neatherbench.quencher.LoginActivity"
             android:label="Вход в аккаунт"
             android:screenOrientation="portrait"
-            android:parentActivityName="com.neatherbench.com.neatherbench.quencher.MainActivity">
+            android:parentActivityName="com.neatherbench.quencher.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.neatherbench.com.neatherbench.quencher.MainActivity" />
+                android:value="com.neatherbench.quencher.MainActivity" />
         </activity>
         <activity
-            android:name="com.neatherbench.com.neatherbench.quencher.SignupActivity"
+            android:name="com.neatherbench.quencher.SignupActivity"
             android:label="Регистрация"
             android:screenOrientation="portrait"
-            android:parentActivityName="com.neatherbench.com.neatherbench.quencher.MainActivity">
+            android:parentActivityName="com.neatherbench.quencher.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.neatherbench.com.neatherbench.quencher.MainActivity" />
+                android:value="com.neatherbench.quencher.MainActivity" />
         </activity>
     </application>
 

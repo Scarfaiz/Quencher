@@ -1,5 +1,7 @@
 package com.neatherbench.quencher;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -13,18 +15,19 @@ import libs.JSONParser;
 
 class EntranceTask extends AsyncTask<String, String, String> {
 
-    private JSONParser jsonParser = new JSONParser();
     private String TAG = "LogDebug";
-
+    @SuppressLint("StaticFieldLeak")
+    private static Context context;
     private static String server_address;
     private static List<NameValuePair> username_data = null;
     private AsyncResponse delegate = null;
 
     private static final String TAG_SUCCESS = "success";
 
-    EntranceTask(String server_address, List<NameValuePair> username_data, AsyncResponse delegate) {
+    EntranceTask(String server_address, List<NameValuePair> username_data, Context context, AsyncResponse delegate) {
         EntranceTask.server_address = server_address;
         EntranceTask.username_data = username_data;
+        EntranceTask.context = context;
         this.delegate = delegate;
     }
 
@@ -32,6 +35,7 @@ class EntranceTask extends AsyncTask<String, String, String> {
 
     @Override
     protected String doInBackground(String[] args){
+        JSONParser jsonParser = new JSONParser(context);
         JSONObject json = jsonParser.makeHttpRequest(server_address, "GET", username_data);
         try {
             Log.d(TAG, "JSON response: " + json.toString());

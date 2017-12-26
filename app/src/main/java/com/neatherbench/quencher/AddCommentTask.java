@@ -1,32 +1,39 @@
 package com.neatherbench.quencher;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import libs.JSONParser;
 import org.apache.http.NameValuePair;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.util.List;
+
+import libs.JSONParser;
 
 class AddCommentTask extends AsyncTask<String, String, String> {
 
-    private JSONParser jsonParser = new JSONParser();
+    @SuppressLint("StaticFieldLeak")
+    private static Context context;
     private String TAG = "LogDebug";
 
     private static String server_address;
     private static List<NameValuePair> new_comment_data = null;
     private static final String TAG_SUCCESS = "success";
 
-    AddCommentTask(String server_address, List<NameValuePair> new_comment_data) {
+    AddCommentTask(String server_address, List<NameValuePair> new_comment_data, Context context) {
         AddCommentTask.server_address = server_address;
         AddCommentTask.new_comment_data = new_comment_data;
+        AddCommentTask.context = context;
     }
 
 
 
     @Override
     protected String doInBackground(String[] args){
+        JSONParser jsonParser = new JSONParser(context);
         JSONObject json = jsonParser.makeHttpRequest(server_address, "GET", new_comment_data);
         try {
             Log.d(TAG, "JSON response: " + json.toString());

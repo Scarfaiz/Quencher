@@ -1,5 +1,7 @@
 package com.neatherbench.quencher;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -20,10 +22,13 @@ class GetAccountDataTask extends AsyncTask<String, List<String>, List<String>> {
     private static String username;
     private static String TAG = "LogDebug";
     private AsyncResponse delegate = null;
+    @SuppressLint("StaticFieldLeak")
+    private static Context context;
 
-    public GetAccountDataTask(String server_address, String username, AsyncResponse delegate) {
+    public GetAccountDataTask(String server_address, String username, Context context, AsyncResponse delegate) {
         GetAccountDataTask.server_address = server_address;
         GetAccountDataTask.username = username;
+        GetAccountDataTask.context = context;
         this.delegate = delegate;
     }
 
@@ -31,7 +36,7 @@ class GetAccountDataTask extends AsyncTask<String, List<String>, List<String>> {
     protected List<String> doInBackground(String[] params) {
 
         Log.d(TAG, "Sending JSON request");
-        JSONParser jsonParser = new JSONParser();
+        JSONParser jsonParser = new JSONParser(context);
         int success;
         // Список параметров
         List<NameValuePair> username_data = new ArrayList<>();

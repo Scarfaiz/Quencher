@@ -136,10 +136,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Menu menu = navigationView.getMenu();
             MenuItem nav_account = menu.findItem(R.id.nav_account);
             nav_account.setTitle("Информация об аккаунте");
-            final String entrance_server_address = "http://178.162.41.115/get_daily.php";
+            final String entrance_server_address = "https://178.162.41.115/get_daily.php";
             List<NameValuePair> username_data = new ArrayList<>();
             username_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
-            executeAsyncTask(new EntranceTask(entrance_server_address, username_data, new EntranceTask.AsyncResponse() {
+            executeAsyncTask(new EntranceTask(entrance_server_address, username_data, MainActivity.this.getApplicationContext(), new EntranceTask.AsyncResponse() {
                 @Override
                 public void processFinish(String output) {
                     if (output.equals("1")) {
@@ -246,7 +246,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         SearchButton.setOnClickListener(new View.OnClickListener() {
                                             @Override
                                             public void onClick(View view) {
-                                                executeAsyncTask(new SearchForMarkersTask(String.valueOf(prefs.getFloat("Latitude", 59.93863f)), String.valueOf(prefs.getFloat("Longitude", 30.31413f)), prefs.getString("city", "Санкт-Петербург"),
+                                                executeAsyncTask(new SearchForMarkersTask(String.valueOf(prefs.getFloat("Latitude", 59.93863f)), String.valueOf(prefs.getFloat("Longitude", 30.31413f)), prefs.getString("city", "Санкт-Петербург"), MainActivity.this.getApplicationContext(),
                                                 new SearchForMarkersTask.AsyncResponse() {
                                                     @Override
                                                     public void processFinish(List<String> output) {
@@ -260,8 +260,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                         String[] id_split = output.get(0).split("\\s+");
                                                         String[] conf_status_split = output.get(3).split("\\s+");
                                                         final SearchForMarkersTask.GenSet<Marker> startMarker = new SearchForMarkersTask.GenSet<>(Marker.class, id_split.length);
-                                                        final String entry_data_server_address = "http://178.162.41.115/get_entry_details.php";
-                                                        final String comments_data_server_address = "http://178.162.41.115/get_comments.php";
+                                                        final String entry_data_server_address = "https://178.162.41.115/get_entry_details.php";
+                                                        final String comments_data_server_address = "https://178.162.41.115/get_comments.php";
                                                         for (int i = 0; i < id_split.length; i++) {
                                                             latitude = Double.valueOf(latitude_split[i]);
                                                             longitude = Double.valueOf(longitude_split[i]);
@@ -294,7 +294,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                                     params.height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 420, getResources().getDisplayMetrics());
                                                                     params.width = ViewGroup.LayoutParams.MATCH_PARENT;
                                                                     bottom_sheet_comments_layout.setLayoutParams(params);*/
-                                                                    executeAsyncTask(new GetEntryDataTask(entry_data_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), prefs.getString("username", "skipped"), new GetEntryDataTask.AsyncResponse() {
+                                                                    executeAsyncTask(new GetEntryDataTask(entry_data_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetEntryDataTask.AsyncResponse() {
 
                                                                         @Override
                                                                         public void processFinish(final List<String> output) {
@@ -312,20 +312,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                                                     dismiss.setLayoutParams(bottom_sheet_rel.getLayoutParams());
                                                                                     bottom_sheet_rel.addView(confirm);
                                                                                     bottom_sheet_rel.addView(dismiss);
-                                                                                    final String conf_server_address = "http://178.162.41.115/change_entry_status.php";
+                                                                                    final String conf_server_address = "https://178.162.41.115/change_entry_status.php";
                                                                                     confirm.setOnClickListener(new View.OnClickListener() {
                                                                                         @Override
                                                                                         public void onClick(View view) {
                                                                                             final List<NameValuePair> conf_data = new ArrayList<>();
                                                                                             conf_data.add(new BasicNameValuePair("id",output.get(10)));
                                                                                             conf_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
-                                                                                            final String account_data_server_address = "http://178.162.41.115/get_account_data.php";
-                                                                                            executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), new GetAccountDataTask.AsyncResponse() {
+                                                                                            final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
+                                                                                            executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
                                                                                                 @Override
                                                                                                 public void processFinish(List<String> output) {
                                                                                                     try {
                                                                                                         conf_data.add(new BasicNameValuePair("confirmation_status", output.get(0)));
-                                                                                                        executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data));
+                                                                                                        executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data, MainActivity.this.getApplicationContext()));
                                                                                                         confirm.setEnabled(false);
                                                                                                         dismiss.setEnabled(false);
                                                                                                         Toast.makeText(MainActivity.this, "Спасибо за Ваш голос! Вы получили несколько бутылок", Toast.LENGTH_SHORT).show();
@@ -342,13 +342,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                                                             final List<NameValuePair> conf_data = new ArrayList<>();
                                                                                             conf_data.add(new BasicNameValuePair("id", output.get(10)));
                                                                                             conf_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
-                                                                                            final String account_data_server_address = "http://178.162.41.115/get_account_data.php";
-                                                                                            executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), new GetAccountDataTask.AsyncResponse() {
+                                                                                            final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
+                                                                                            executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
                                                                                                 @Override
                                                                                                 public void processFinish(List<String> output) {
                                                                                                     try {
                                                                                                         conf_data.add(new BasicNameValuePair("confirmation_status", "-" + output.get(0)));
-                                                                                                        executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data));
+                                                                                                        executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data, MainActivity.this.getApplicationContext()));
                                                                                                         confirm.setEnabled(false);
                                                                                                         dismiss.setEnabled(false);
                                                                                                         Toast.makeText(MainActivity.this, "Спасибо за Ваш голос! Вы получили несколько бутылок", Toast.LENGTH_SHORT).show();
@@ -395,7 +395,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                                                     comments_textview.setLayoutParams(bottom_sheet_comments_layout.getLayoutParams());
                                                                                     bottom_sheet_comments_layout.addView(comments_textview);
                                                                                 }
-                                                                                executeAsyncTask(new GetCommentsTask(comments_data_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), new GetCommentsTask.AsyncResponse() {
+                                                                                executeAsyncTask(new GetCommentsTask(comments_data_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), MainActivity.this.getApplicationContext(), new GetCommentsTask.AsyncResponse() {
                                                                                     @SuppressLint("SetTextI18n")
                                                                                     @Override
                                                                                     public void processFinish(List<String> output) {
@@ -439,6 +439,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                             }
                                         }
                                         );
+        final FloatingActionButton newMarkerButton = coordinatorLayout.findViewById(R.id.new_marker_button);
         behavior.addBottomSheetCallback(new BottomSheetBehaviorGoogleMapsLike.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
@@ -498,14 +499,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
         FrameLayout frameLayoutBottom = findViewById(R.id.dummy_framelayout_replacing_map);
-        FloatingActionButton newMarkerButton = coordinatorLayout.findViewById(R.id.new_marker_button);
+
+        //newMarkerButton.show();
         newMarkerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if(bottom_sheet_button_desc.getText() == "Добавить место") {
                     if (!prefs.getString("username", "skipped").equals("skipped")) {
-                        final String account_data_server_address = "http://178.162.41.115/get_account_data.php";
-                        executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), new GetAccountDataTask.AsyncResponse() {
+                        final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
+                        executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
                             @Override
                             public void processFinish(List<String> output) {
                                 try{
@@ -554,6 +556,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             @Override
             public boolean longPressHelper(GeoPoint p) {
+                newMarkerButton.show();
                 ItemPagerAdapter adapter = new ItemPagerAdapter(MainActivity.this, new int[]{0});
                 ViewPager viewPager = coordinatorLayout.findViewById(R.id.pager);
                 viewPager.setAdapter(adapter);
@@ -616,7 +619,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     {
                         bottom_sheet_button_desc.setText("Добавить место");
                         bottom_sheet_rel.addView(bottom_sheet_pb);
-                        url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + marker_geopostition.getLatitude() + "&lon=" + marker_geopostition.getLongitude() + "&zoom=18&addressdetails=1";
+                        url = "https://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + marker_geopostition.getLatitude() + "&lon=" + marker_geopostition.getLongitude() + "&zoom=18&addressdetails=1";
                         Log.d(tag, "Sending request to: " + url);
                         bottomSheetTextView = findViewById(R.id.bottom_sheet_title);
                         bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
@@ -735,7 +738,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         popup_window.showAtLocation(mainLayout, Gravity.CENTER, 0 , 0);
 
         final TextInputEditText popup_window_text = popupView.findViewById(R.id.popup_comment);
-        final String add_comment_server_address = "http://178.162.41.115/add_comment.php";
+        final String add_comment_server_address = "https://178.162.41.115/add_comment.php";
 
         final Button popup_cancel_button = popupView.findViewById(R.id.popup_cancel);
         popup_cancel_button.setOnClickListener(new View.OnClickListener() {
@@ -756,7 +759,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 comment_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
                 comment_data.add(new BasicNameValuePair("comments", popup_window_text.getText().toString()));
                 Log.d(tag, "Comment data:" + id + " " + prefs.getString("username", "skipped") + " " + popup_window_text.getText().toString());
-                executeAsyncTask(new AddCommentTask(add_comment_server_address, comment_data));
+                executeAsyncTask(new AddCommentTask(add_comment_server_address, comment_data, MainActivity.this.getApplicationContext()));
                 Toast.makeText(MainActivity.this, "Комментарий успешно добавлен", Toast.LENGTH_SHORT).show();
                 popup_window.setAnimationStyle(R.anim.popup_window_animation);
                 popup_window.dismiss();
@@ -799,6 +802,26 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             float Longitude = (float) loc.getLongitude();
             editor.putFloat("Longitude", Longitude);
             Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf(prefs.getFloat("Longitude", Longitude)));
+            url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + loc.getLatitude() + "&lon=" + loc.getLongitude() + "&zoom=18&addressdetails=1";
+            Log.d(tag, "Sending request to: " + url);
+            executeAsyncTask(new GetUrlContentTask(prefs, url, new GetUrlContentTask.AsyncResponse(){
+
+                @SuppressLint("SetTextI18n")
+                @Override
+                public void processFinish(List<XMLParser.Entry> output){
+                    try {
+                        if (output.get(0).city != null) {
+                            city = output.get(0).city;
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.putString("city", String.valueOf(output.get(0).city));
+                            editor.apply();
+                        }
+                    } catch (Exception e) {
+                        bottomSheetTextView.setText("Невозможно загрузить адрес");
+                        bottomSheetTextViewSubtitle.setText(output.toString());
+                    }
+                }
+            }));
             editor.apply();
         } else GetLocPermission();
 
@@ -930,7 +953,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int id = item.getItemId();
         prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         if (id == R.id.nav_leaderboard) {
-                executeAsyncTask(new LeaderboardTask(prefs.getString("username", "skipped"), new LeaderboardTask.AsyncResponse() {
+                executeAsyncTask(new LeaderboardTask(prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new LeaderboardTask.AsyncResponse() {
                     @Override
                     public void processFinish(List<String> output) {
                         try {
@@ -1029,8 +1052,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
                 popup_username.setText(prefs.getString("username", "skipped"));
 
-                final String account_data_server_address = "http://178.162.41.115/get_account_data.php";
-                executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), new GetAccountDataTask.AsyncResponse() {
+                final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
+                executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
                     @Override
                     public void processFinish(List<String> output) {
                         try {

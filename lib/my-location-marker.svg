@@ -1,25 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <!-- Creator: CorelDRAW 2017 -->
-<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="180px" height="320px" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
-viewBox="0 0 180 320"
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="2480px" height="3508px" version="1.1" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd"
+viewBox="0 0 2480 3507.43"
  xmlns:xlink="http://www.w3.org/1999/xlink">
- <defs>
-  <style type="text/css">
-   <![CDATA[
-    .fil0 {fill:#058AB2}
-    .fil2 {fill:#1A291C}
-    .fil1 {fill:#8BD1E9;fill-opacity:0.400000}
-   ]]>
-  </style>
- </defs>
  <g id="Слой_x0020_1">
   <metadata id="CorelCorpID_0Corel-Layer"/>
-  <circle class="fil0" cx="90" cy="83.5" r="22.5"/>
-  <path class="fil1" d="M90 210c46.94,0 85,17.68 85,39.5 0,21.81 -38.06,39.5 -85,39.5 -46.94,0 -85,-17.69 -85,-39.5 0,-21.82 38.06,-39.5 85,-39.5z"/>
-  <rect class="fil0" x="60" y="105" width="60" height="100"/>
-  <rect class="fil0" x="70" y="205" width="40" height="50"/>
-  <rect class="fil0" x="30" y="143" width="30" height="10"/>
-  <path class="fil2" d="M43.75 153l-11 0 0 19 11 0 0 -19zm-8.25 -16.5l5 0 0 7 -5 0 0 -7z"/>
+  <circle fill="#058AB2" cx="1240" cy="1514.68" r="70.3"/>
+  <path fill="#8BD1E9" fill-opacity="0.400000" d="M1240 1909.94c146.67,0 265.59,55.25 265.59,123.43 0,68.14 -118.92,123.42 -265.59,123.42 -146.67,0 -265.59,-55.28 -265.59,-123.42 0,-68.18 118.92,-123.43 265.59,-123.43z"/>
+  <rect fill="#058AB2" x="1146.26" y="1581.86" width="187.48" height="312.46" rx="35.43" ry="35.43"/>
+  <rect fill="#058AB2" x="1177.51" y="1874.84" width="124.98" height="187.33" rx="17.71" ry="21.24"/>
+  <rect fill="#058AB2" x="1052.52" y="1700.6" width="108.37" height="31.25" rx="20.48" ry="17.71"/>
+  <polygon fill="#1A291C" points="1079.74,1680.47 1095.36,1680.47 1095.36,1702.34 1079.74,1702.34 "/>
+  <polygon fill="#1A291C" points="1105.52,1732.02 1071.15,1732.02 1071.15,1791.39 1105.52,1791.39 "/>
  </g>
 </svg>

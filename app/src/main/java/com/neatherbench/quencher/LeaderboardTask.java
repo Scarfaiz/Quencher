@@ -1,5 +1,7 @@
 package com.neatherbench.quencher;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -20,10 +22,13 @@ public class LeaderboardTask extends AsyncTask<String, List<String>, List<String
     private static String TAG = "LogDebug";
     private static String username;
     private AsyncResponse delegate = null;
+    @SuppressLint("StaticFieldLeak")
+    private static Context context;
 
 
-    public LeaderboardTask(String username, AsyncResponse delegate) {
+    public LeaderboardTask(String username, Context context, AsyncResponse delegate) {
         LeaderboardTask.username = username;
+        LeaderboardTask.context = context;
         this.delegate = delegate;
     }
 
@@ -33,9 +38,9 @@ public class LeaderboardTask extends AsyncTask<String, List<String>, List<String
 
     @Override
     protected List<String> doInBackground(String[] params) {
-        String server_address = "http://178.162.41.115/leaderboard_data.php";
+        String server_address = "https://178.162.41.115/leaderboard_data.php";
         Log.d(TAG, "Sending JSON request");
-        JSONParser jsonParser = new JSONParser();
+        JSONParser jsonParser = new JSONParser(context);
         int success;
         // Список параметров
         List<NameValuePair> username_data = new ArrayList<>();
