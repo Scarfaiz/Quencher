@@ -1,5 +1,6 @@
 package com.neatherbench.quencher;
 
+import android.util.Log;
 import android.util.Xml;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -17,6 +18,14 @@ import java.util.List;
 public class XMLParser {
     // We don't use namespaces
     private static final String ns = null;
+    public String tag;
+    public String subtag;
+
+    public XMLParser(String tag, String subtag)
+    {
+        this.tag = tag;
+        this.subtag = subtag;
+    }
 
     public List<XMLParser.Entry> parse(InputStream in) throws XmlPullParserException, IOException {
         try {
@@ -33,14 +42,14 @@ public class XMLParser {
     private List<XMLParser.Entry> readFeed(XmlPullParser parser) throws XmlPullParserException, IOException {
         List entries = new ArrayList();
 
-        parser.require(XmlPullParser.START_TAG, ns, "reversegeocode");
+        parser.require(XmlPullParser.START_TAG, ns, tag);
         while (parser.next() != XmlPullParser.END_TAG) {
             if (parser.getEventType() != XmlPullParser.START_TAG) {
                 continue;
             }
             String name = parser.getName();
             // Starts by looking for the entry tag
-            if (name.equals("addressparts")) {
+            if (name.equals(subtag)) {
                 entries.add(readEntry(parser));
             } else {
                 skip(parser);
@@ -53,37 +62,62 @@ public class XMLParser {
         public final String city;
         public final String house_number;
         public final String road;
+        public final String lat;
+        public final String lon;
 
-        private Entry(String city, String road, String house_number) {
+        private Entry(String city, String road, String house_number, String lat, String lon) {
             this.city = city;
             this.road = road;
             this.house_number = house_number;
+            this.lat = lat;
+            this.lon = lon;
         }
     }
 
     // Parses the contents of an entry. If it encounters a city, road, or house_number tag, hands them off
 // to their respective "read" methods for processing. Otherwise, skips the tag.
     private Entry readEntry(XmlPullParser parser) throws XmlPullParserException, IOException {
-        parser.require(XmlPullParser.START_TAG, ns, "addressparts");
+        parser.require(XmlPullParser.START_TAG, ns, subtag);
         String city = null;
         String road = null;
         String house_number = null;
+        String lat = null;
+        String lon = null;
         while (parser.next() != XmlPullParser.END_TAG) {
             if (parser.getEventType() != XmlPullParser.START_TAG) {
                 continue;
             }
             String name = parser.getName();
+            Log.d("LogDebug", name);
             if (name.equals("state")) {
                 city = readCity(parser);
             } else if (name.equals("road")) {
                 road = readRoad(parser);
             } else if (name.equals("house_number")) {
                 house_number = readHouseNumber(parser);
+            } else if (name.equals("lat")) {
+                lat = readlat(parser);
+            } else if (name.equals("lon")) {
+                lon = readlon(parser);
             } else {
                 skip(parser);
             }
         }
-        return new Entry(city, road, house_number);
+        return new Entry(city, road, house_number, lat, lon);
+    }
+
+    private String readlat(XmlPullParser parser)  throws IOException, XmlPullParserException {
+        parser.require(XmlPullParser.START_TAG, ns, "lat");
+        String lat = readText(parser);
+        parser.require(XmlPullParser.END_TAG, ns, "lat");
+        return lat;
+    }
+
+    private String readlon(XmlPullParser parser)  throws IOException, XmlPullParserException {
+        parser.require(XmlPullParser.START_TAG, ns, "lon");
+        String lon = readText(parser);
+        parser.require(XmlPullParser.END_TAG, ns, "lon");
+        return lon;
     }
 
     // Processes city tags in the feed.

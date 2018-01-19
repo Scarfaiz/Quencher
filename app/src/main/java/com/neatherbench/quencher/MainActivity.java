@@ -3,16 +3,15 @@ package com.neatherbench.quencher;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.app.SearchManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
+import android.database.MatrixCursor;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -21,6 +20,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CoordinatorLayout;
@@ -32,29 +32,32 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.content.PermissionChecker;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
+import android.support.v4.widget.CursorAdapter;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AlertDialog.Builder;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.animation.AnimationUtils;
 import android.widget.Button;
-import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.events.MapEventsReceiver;
@@ -73,600 +76,25 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private static MapView map;
-    public boolean geodata_updated = false;
     private static LocationManager locationManager;
     private static IMapController mapController;
-    private FloatingActionButton LocButton;
-    private FloatingActionButton SearchButton;
     private static int permsRequestCode;
-    private TextView bottomSheetTextView;
-    private TextView bottomSheetTextViewSubtitle;
-    private TextView bottom_sheet_button_desc;
-    public SharedPreferences prefs;
     private static String url;
     private static String tag = "LogDebug";
     private static GeoPoint marker_geopostition;
+    public boolean geodata_updated = false;
+    public SharedPreferences prefs;
+    public Marker my_location_marker;
+    private FloatingActionButton LocButton;
+    private FloatingActionButton SearchButton;
+    private TextView bottomSheetTextView;
+    private TextView bottomSheetTextViewSubtitle;
+    private TextView bottom_sheet_button_desc;
     private String city;
     private String address;
+    private ProgressDialog dialog;
     private LinearLayout bottom_sheet_comments_layout;
     private LinearLayout bottom_sheet_rel;
-    public Marker my_location_marker;
-
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        setContentView(R.layout.activity_main);
-        Context ctx = getApplicationContext();
-        Configuration.getInstance().load(ctx, prefs);
-        Configuration.getInstance().setUserAgentValue("CB");
-        permsRequestCode = 1;
-        GetLocPermission();
-        map =  findViewById(R.id.map);
-        map.setTileSource(TileSourceFactory.MAPNIK);
-        map.setMultiTouchControls(true);
-        mapController = map.getController();
-        mapController.setZoom(13);
-        GeoPoint startPoint = new GeoPoint(prefs.getFloat("Latitude", 59.93863f), prefs.getFloat("Longitude", 30.31413f));
-        Log.d(tag, "Loaded Geoposition: " + String.valueOf(prefs.getFloat("Latitude", 59.93863f)) + "  " + String.valueOf(prefs.getFloat("Longitude", 30.31413f)));
-        mapController.animateTo(startPoint);
-        my_location_marker = new Marker(map);
-        final BitmapFactory.Options person_options = new BitmapFactory.Options();
-        person_options.inSampleSize = 4;
-        final Drawable person_drawable = getResources().getDrawable(R.drawable.ic_my_location_marker);
-        Bitmap person_bitmap = Bitmap.createBitmap(person_drawable.getIntrinsicWidth(),
-                person_drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(person_bitmap);
-        person_drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-        person_drawable.draw(canvas);
-        my_location_marker.setIcon(person_drawable);
-        my_location_marker.setPosition(startPoint);
-        my_location_marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-        map.getOverlays().add(my_location_marker);
-        map.invalidate();
-        geodata_updated = false;
-        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        assert locationManager != null;
-        locationManager.removeUpdates(myLocationListener);
-        if(!prefs.contains("username")) {
-            startActivity(new Intent(MainActivity.this, LoginActivity.class));
-        }else if(!prefs.getString("username", "skipped").equals("skipped")) {
-            NavigationView navigationView = findViewById(R.id.nav_view);
-            Menu menu = navigationView.getMenu();
-            MenuItem nav_account = menu.findItem(R.id.nav_account);
-            nav_account.setTitle("Информация об аккаунте");
-            final String entrance_server_address = "https://178.162.41.115/get_daily.php";
-            List<NameValuePair> username_data = new ArrayList<>();
-            username_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
-            executeAsyncTask(new EntranceTask(entrance_server_address, username_data, MainActivity.this.getApplicationContext(), new EntranceTask.AsyncResponse() {
-                @Override
-                public void processFinish(String output) {
-                    if (output.equals("1")) {
-                        CoordinatorLayout mainLayout = findViewById(R.id.coordinatorlayout);
-                        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-                        final View popupView = inflater.inflate(R.layout.entrance_popup_window_layout, null);
-                        popupView.setAnimation(AnimationUtils.loadAnimation(MainActivity.this, R.anim.popup_window_animation));
-                        final PopupWindow popup_window = new PopupWindow(popupView);
-                        popup_window.setWidth(FrameLayout.LayoutParams.WRAP_CONTENT);
-                        popup_window.setHeight(FrameLayout.LayoutParams.WRAP_CONTENT);
-                        popup_window.setFocusable(true);
-                        popup_window.setBackgroundDrawable(new BitmapDrawable());
-                        popup_window.setOutsideTouchable(false);
-                        popup_window.showAtLocation(mainLayout, Gravity.CENTER, 0, 0);
-                        final Button popup_entrance_ok = popupView.findViewById(R.id.popup_entrance_ok);
-                        popup_entrance_ok.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                popup_window.setAnimationStyle(R.anim.popup_window_animation);
-                                popup_window.dismiss();
-                            }
-                        });
-                    }
-                }
-            }));
-            final View nav_header = navigationView.getHeaderView(0);
-            final TextView nav_title = nav_header.findViewById(R.id.nav_title);
-            final TextView nav_subtitle = nav_header.findViewById(R.id.nav_subtitle);
-            nav_title.setText(prefs.getString("username", "Имя пользователя"));
-            nav_subtitle.setText(prefs.getString("status", "Участник закрытого бета-теста"));
-        }
-        /*MyLocationNewOverlay oMapLocationOverlay = new MyLocationNewOverlay(map);
-        oMapLocationOverlay.enableMyLocation();
-        oMapLocationOverlay.setDrawAccuracyEnabled(false);
-        oMapLocationOverlay.getEnableAutoStop();
-        map.getOverlays().add(oMapLocationOverlay);
-        final BitmapFactory.Options person_options = new BitmapFactory.Options();
-        person_options.inSampleSize = 4;
-        final Drawable person_drawable = getResources().getDrawable(R.drawable.ic_my_location_marker);
-        Bitmap person_bitmap = Bitmap.createBitmap(person_drawable.getIntrinsicWidth(),
-                person_drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(person_bitmap);
-        person_drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-        person_drawable.draw(canvas);
-        oMapLocationOverlay.setPersonIcon(person_bitmap);
-        oMapLocationOverlay.setDirectionArrow(person_bitmap, person_bitmap);*/
-        final Toolbar toolbar = findViewById(R.id.toolbar);
-        //setSupportActionBar(toolbar);
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
-
-        NavigationView navigationView = findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
-
-        marker_geopostition = null;
-        address = null;
-        city = null;
-        int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
-        if (permission == PermissionChecker.PERMISSION_GRANTED) {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
-            Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this));
-        } else {
-            GetLocPermission();
-        }
-
-
-        final CoordinatorLayout coordinatorLayout = findViewById(R.id.coordinatorlayout);
-        View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
-        final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
-        behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_HIDDEN);
-
-        //setting listener for locButton
-        LocButton = coordinatorLayout.findViewById(R.id.locButton);
-        LocButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
-                if (permission == PermissionChecker.PERMISSION_GRANTED) {
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
-                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
-                    Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    updateLoc(lastLocation);
-                    if (mapController.zoomIn())
-                        mapController.zoomOut();
-                } else {
-                    GetLocPermission();
-                }
-            }
-        });
-
-        bottomSheetTextView =  bottomSheet.findViewById(R.id.bottom_sheet_title);
-        bottomSheetTextViewSubtitle =  bottomSheet.findViewById(R.id.bottom_sheet_subtitle);
-        bottom_sheet_comments_layout = findViewById(R.id.bottom_sheet_comments_layout);
-        bottom_sheet_rel = findViewById(R.id.bottom_sheet_rel);
-        bottom_sheet_button_desc = findViewById(R.id.bottom_sheet_button_desc);
-        final ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
-        bottom_sheet_pb.setLayoutParams(bottom_sheet_rel.getLayoutParams());
-        SearchButton = coordinatorLayout.findViewById(R.id.searchButton);
-        SearchButton.setOnClickListener(new View.OnClickListener() {
-                                            @Override
-                                            public void onClick(View view) {
-                                                executeAsyncTask(new SearchForMarkersTask(String.valueOf(prefs.getFloat("Latitude", 59.93863f)), String.valueOf(prefs.getFloat("Longitude", 30.31413f)), prefs.getString("city", "Санкт-Петербург"), MainActivity.this.getApplicationContext(),
-                                                new SearchForMarkersTask.AsyncResponse() {
-                                                    @Override
-                                                    public void processFinish(List<String> output) {
-                                                        try{
-                                                        Double latitude;
-                                                        Double longitude;
-                                                        int id;
-                                                        int conf_status;
-                                                        String[] latitude_split = output.get(1).split("\\s+");
-                                                        String[] longitude_split = output.get(2).split("\\s+");
-                                                        String[] id_split = output.get(0).split("\\s+");
-                                                        String[] conf_status_split = output.get(3).split("\\s+");
-                                                        final SearchForMarkersTask.GenSet<Marker> startMarker = new SearchForMarkersTask.GenSet<>(Marker.class, id_split.length);
-                                                        final String entry_data_server_address = "https://178.162.41.115/get_entry_details.php";
-                                                        final String comments_data_server_address = "https://178.162.41.115/get_comments.php";
-                                                        for (int i = 0; i < id_split.length; i++) {
-                                                            latitude = Double.valueOf(latitude_split[i]);
-                                                            longitude = Double.valueOf(longitude_split[i]);
-                                                            id = Integer.valueOf(id_split[i]);
-                                                            conf_status = Integer.valueOf(conf_status_split[i]);
-                                                            Log.d(tag, "Split markers data info: " + latitude + " " + longitude + " " + id + " with array length: " + id_split.length);
-                                                            GeoPoint p = new GeoPoint(latitude, longitude);
-                                                            startMarker.a[i] = new Marker(map);
-                                                            startMarker.a[i].setPosition(p);
-                                                            startMarker.a[i].setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-                                                            startMarker.a[i].setTitle(String.valueOf(id));
-                                                            if(conf_status>=200)
-                                                                startMarker.a[i].setIcon(getResources().getDrawable(R.drawable.ic_marker_confirmed));
-                                                            else
-                                                                startMarker.a[i].setIcon(getResources().getDrawable(R.drawable.ic_marker_unconfirmed));
-                                                            final int final_i = i;
-                                                            map.getOverlays().add(startMarker.a[i]);
-                                                            map.invalidate();
-                                                            startMarker.a[i].setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
-                                                                @Override
-                                                                public boolean onMarkerClick(Marker item, MapView arg1) {
-                                                                    bottom_sheet_rel.removeAllViews();
-                                                                    bottom_sheet_button_desc.setText("Добавить комментарий");
-                                                                    behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
-                                                                    bottom_sheet_rel.addView(bottom_sheet_pb);
-                                                                    SharedPreferences.Editor editor = prefs.edit();
-                                                                    editor.putInt("marker_id", Integer.valueOf(startMarker.a[final_i].getTitle()));
-                                                                    editor.apply();
-                                                                    /*ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
-                                                                    params.height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 420, getResources().getDisplayMetrics());
-                                                                    params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-                                                                    bottom_sheet_comments_layout.setLayoutParams(params);*/
-                                                                    executeAsyncTask(new GetEntryDataTask(entry_data_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetEntryDataTask.AsyncResponse() {
-
-                                                                        @Override
-                                                                        public void processFinish(final List<String> output) {
-                                                                            try{
-                                                                            bottom_sheet_rel.removeAllViews();
-                                                                            bottom_sheet_comments_layout.removeAllViews();
-                                                                                if((!prefs.getString("username", "skipped").equals("skipped")) && output.get(9).equals("1") && (!output.get(8).equals(prefs.getString("username", "skipped")))) {
-                                                                                    final Button confirm = new Button(MainActivity.this);
-                                                                                    final Button dismiss = new Button(MainActivity.this);
-                                                                                    confirm.setText("Подтвердить место");
-                                                                                    dismiss.setText("Пожаловаться");
-                                                                                    confirm.setBackground(getResources().getDrawable(R.color.colorPrimaryDark));
-                                                                                    dismiss.setBackground(getResources().getDrawable(R.color.colorPrimaryDark));
-                                                                                    confirm.setLayoutParams(bottom_sheet_rel.getLayoutParams());
-                                                                                    dismiss.setLayoutParams(bottom_sheet_rel.getLayoutParams());
-                                                                                    bottom_sheet_rel.addView(confirm);
-                                                                                    bottom_sheet_rel.addView(dismiss);
-                                                                                    final String conf_server_address = "https://178.162.41.115/change_entry_status.php";
-                                                                                    confirm.setOnClickListener(new View.OnClickListener() {
-                                                                                        @Override
-                                                                                        public void onClick(View view) {
-                                                                                            final List<NameValuePair> conf_data = new ArrayList<>();
-                                                                                            conf_data.add(new BasicNameValuePair("id",output.get(10)));
-                                                                                            conf_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
-                                                                                            final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
-                                                                                            executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
-                                                                                                @Override
-                                                                                                public void processFinish(List<String> output) {
-                                                                                                    try {
-                                                                                                        conf_data.add(new BasicNameValuePair("confirmation_status", output.get(0)));
-                                                                                                        executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data, MainActivity.this.getApplicationContext()));
-                                                                                                        confirm.setEnabled(false);
-                                                                                                        dismiss.setEnabled(false);
-                                                                                                        Toast.makeText(MainActivity.this, "Спасибо за Ваш голос! Вы получили несколько бутылок", Toast.LENGTH_SHORT).show();
-                                                                                                    } catch (IndexOutOfBoundsException e) {
-                                                                                                        Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
-                                                                                                    }
-                                                                                                }
-                                                                                            }));
-                                                                                        }
-                                                                                    });
-                                                                                    dismiss.setOnClickListener(new View.OnClickListener() {
-                                                                                        @Override
-                                                                                        public void onClick(View view) {
-                                                                                            final List<NameValuePair> conf_data = new ArrayList<>();
-                                                                                            conf_data.add(new BasicNameValuePair("id", output.get(10)));
-                                                                                            conf_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
-                                                                                            final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
-                                                                                            executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
-                                                                                                @Override
-                                                                                                public void processFinish(List<String> output) {
-                                                                                                    try {
-                                                                                                        conf_data.add(new BasicNameValuePair("confirmation_status", "-" + output.get(0)));
-                                                                                                        executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data, MainActivity.this.getApplicationContext()));
-                                                                                                        confirm.setEnabled(false);
-                                                                                                        dismiss.setEnabled(false);
-                                                                                                        Toast.makeText(MainActivity.this, "Спасибо за Ваш голос! Вы получили несколько бутылок", Toast.LENGTH_SHORT).show();
-                                                                                                    } catch (IndexOutOfBoundsException e) {
-                                                                                                        Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
-                                                                                                    }
-                                                                                                }
-                                                                                            }));
-                                                                                        }
-                                                                                    });
-                                                                                }
-                                                                            marker_geopostition = new GeoPoint(Double.valueOf(output.get(6)), Double.valueOf(output.get(7)));
-                                                                            bottomSheetTextView.setText(output.get(0));
-                                                                            bottomSheetTextViewSubtitle.setText(output.get(1));
-                                                                            TextView wh_textView = new TextView(MainActivity.this);
-                                                                            TextView r_textView = new TextView(MainActivity.this);
-                                                                            if (Integer.valueOf(output.get(2)) == 1)
-                                                                                wh_textView.setText("Магазин работает до 22:00");
-                                                                            else
-                                                                                wh_textView.setText("Магазин работает круглосуточно");
-                                                                            if (Integer.valueOf(output.get(3)) == 1)
-                                                                                r_textView.setText("В продаже имеются только слабоалкогольные напитки");
-                                                                            else
-                                                                                r_textView.setText("Широкий ассортимент");
-                                                                            wh_textView.setTextSize(18);
-                                                                            r_textView.setTextSize(18);
-                                                                            wh_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
-                                                                            r_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
-                                                                                bottom_sheet_rel.addView(wh_textView);
-                                                                                bottom_sheet_rel.addView(r_textView);
-                                                                                /*ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
-                                                                                params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-                                                                                params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-                                                                                bottom_sheet_comments_layout.setLayoutParams(params);*/
-                                                                                TextView header = new TextView(MainActivity.this);
-                                                                                header.setText("Комментарии:");
-                                                                                header.setTextSize(18);
-                                                                                header.setLayoutParams(bottom_sheet_comments_layout.getLayoutParams());
-                                                                                bottom_sheet_comments_layout.addView(header);
-                                                                                if (!output.get(5).equals("No value for comments")) {
-                                                                                    TextView comments_textview = new TextView(MainActivity.this);
-                                                                                    comments_textview.setText(output.get(8) + "\n" + output.get(5));
-                                                                                    comments_textview.setTextSize(18);
-                                                                                    comments_textview.setLayoutParams(bottom_sheet_comments_layout.getLayoutParams());
-                                                                                    bottom_sheet_comments_layout.addView(comments_textview);
-                                                                                }
-                                                                                executeAsyncTask(new GetCommentsTask(comments_data_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), MainActivity.this.getApplicationContext(), new GetCommentsTask.AsyncResponse() {
-                                                                                    @SuppressLint("SetTextI18n")
-                                                                                    @Override
-                                                                                    public void processFinish(List<String> output) {
-                                                                                        try {
-                                                                                            if(output.get(0).equals("1")) {
-                                                                                                String username;
-                                                                                                String comments;
-                                                                                                String[] username_split = output.get(1).split("\\n+");
-                                                                                                String[] comments_split = output.get(2).split("\\n+");
-                                                                                                Log.d(tag, "Split username, length, comments:" + Arrays.toString(username_split) + " " + username_split.length + " " + Arrays.toString(comments_split));
-                                                                                                final GetCommentsTask.GenSet<TextView> comments_data = new GetCommentsTask.GenSet<>(TextView.class, username_split.length);
-                                                                                                for (int i = 0; i < username_split.length; i++) {
-                                                                                                    username = username_split[i];
-                                                                                                    comments = comments_split[i];
-                                                                                                    comments_data.a[i] = new TextView(MainActivity.this);
-                                                                                                    comments_data.a[i].setText(username + "\n" + comments);
-                                                                                                    comments_data.a[i].setTextSize(18);
-                                                                                                    comments_data.a[i].setLayoutParams(bottom_sheet_comments_layout.getLayoutParams());
-                                                                                                    bottom_sheet_comments_layout.addView(comments_data.a[i]);
-                                                                                                }
-                                                                                            }
-                                                                                        }catch (IndexOutOfBoundsException e)
-                                                                                        {
-                                                                                            Toast.makeText(MainActivity.this, "Не удалось запросить информацию о комментариях", Toast.LENGTH_SHORT).show();
-                                                                                        }
-                                                                                    }
-                                                                                }));
-                                                                        }catch (IndexOutOfBoundsException e)
-                                                                            {
-                                                                                Toast.makeText(MainActivity.this, "Не удалось запросить информацию об этом месте", Toast.LENGTH_SHORT).show();
-                                                                            }
-                                                                    }}));
-                                                                    return true;
-                                                                }
-                                                            });
-                                                        }
-                                                    }catch (IndexOutOfBoundsException e) {
-                                                        Toast.makeText(MainActivity.this, "Не удалось запросить информацию о доступных местах", Toast.LENGTH_SHORT).show();
-                                                        }
-                                                }}));
-                                            }
-                                        }
-                                        );
-        final FloatingActionButton newMarkerButton = coordinatorLayout.findViewById(R.id.new_marker_button);
-        behavior.addBottomSheetCallback(new BottomSheetBehaviorGoogleMapsLike.BottomSheetCallback() {
-            @Override
-            public void onStateChanged(@NonNull View bottomSheet, int newState) {
-                switch (newState) {
-                    case BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED:
-                        Log.d("bottomsheet-", "STATE_COLLAPSED");
-                        /*int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
-                        if (permission == PermissionChecker.PERMISSION_GRANTED) {
-                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
-                            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
-                            Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                            GeoPoint last_location_to_animate = new GeoPoint(lastLocation.getLatitude() - 0.0025, lastLocation.getLongitude());
-                            mapController.animateTo(last_location_to_animate);
-                        }*/
-                        toolbar.setVisibility(View.VISIBLE);
-                        LocButton.setVisibility(View.VISIBLE);
-                        SearchButton.setVisibility(View.VISIBLE);
-                        break;
-                    case BottomSheetBehaviorGoogleMapsLike.STATE_DRAGGING:
-                        Log.d("bottomsheet-", "STATE_DRAGGING");
-                        break;
-                    case BottomSheetBehaviorGoogleMapsLike.STATE_EXPANDED:
-                        toolbar.setVisibility(View.INVISIBLE);
-                        Log.d("bottomsheet-", "STATE_EXPANDED");
-                        break;
-                    case BottomSheetBehaviorGoogleMapsLike.STATE_ANCHOR_POINT:
-                        toolbar.setVisibility(View.VISIBLE);
-                        GeoPoint marker_geoposition_to_animate = new GeoPoint(marker_geopostition.getLatitude() - 0.0025, marker_geopostition.getLongitude());
-                        mapController.setZoom(17);
-                        mapController.animateTo(marker_geoposition_to_animate);
-                        Log.d("bottomsheet-", "STATE_ANCHOR_POINT");
-                        break;
-                    case BottomSheetBehaviorGoogleMapsLike.STATE_HIDDEN:
-                        Log.d("bottomsheet-", "STATE_HIDDEN");
-                        break;
-                    default:
-                        Log.d("bottomsheet-", "STATE_SETTLING");
-                        break;
-                    case BottomSheetBehaviorGoogleMapsLike.STATE_SETTLING:
-                        break;
-                }
-            }
-
-            @Override
-            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                LocButton.setVisibility(View.INVISIBLE);
-                SearchButton.setVisibility(View.INVISIBLE);
-            }
-        });
-        AppBarLayout mergedAppBarLayout = findViewById(R.id.merged_appbarlayout);
-        MergedAppBarLayoutBehavior mergedAppBarLayoutBehavior = MergedAppBarLayoutBehavior.from(mergedAppBarLayout);
-        mergedAppBarLayoutBehavior.setToolbarTitle("Информация о месте");
-        mergedAppBarLayoutBehavior.setNavigationOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
-            }
-        });
-        FrameLayout frameLayoutBottom = findViewById(R.id.dummy_framelayout_replacing_map);
-
-        //newMarkerButton.show();
-        newMarkerButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(bottom_sheet_button_desc.getText() == "Добавить место") {
-                    if (!prefs.getString("username", "skipped").equals("skipped")) {
-                        final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
-                        executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
-                            @Override
-                            public void processFinish(List<String> output) {
-                                try{
-                                    if(Integer.valueOf(output.get(1))>0) {
-                                        Intent intent = new Intent(MainActivity.this, NewMarkerActivity.class);
-                                        try {
-                                            intent.putExtra("city", city);
-                                            intent.putExtra("latitude", marker_geopostition.getLatitude());
-                                            intent.putExtra("longitude", marker_geopostition.getLongitude());
-                                            intent.putExtra("address", address);
-                                            intent.putExtra("reputation", output.get(0));
-                                            startActivity(intent);
-                                        } catch (NullPointerException e) {
-                                            Log.d(tag, "A failure accured while creating new marker:" + e.getMessage());
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Toast.makeText(MainActivity.this, "Недостаточно крышек :(", Toast.LENGTH_SHORT).show();
-                                    }
-                                }catch (IndexOutOfBoundsException e) {
-                                    Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                        }));
-                    }
-                    else
-                        Toast.makeText(MainActivity.this, "Для добавления места необходима регистрация", Toast.LENGTH_SHORT).show();
-                }
-                else if(bottom_sheet_button_desc.getText() == "Добавить комментарий"){
-                    if(!prefs.getString("username", "skipped").equals("skipped"))
-                    onButtonShowPopupWindowClick(findViewById(R.id.coordinatorlayout), prefs.getInt("marker_id", 0));
-                    else
-                        Toast.makeText(MainActivity.this, "Для добавления комментария необходима регистрация", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-        MapEventsReceiver mReceive = new MapEventsReceiver() {
-            @Override
-            public boolean singleTapConfirmedHelper(GeoPoint p) {
-                //Toast.makeText(getBaseContext(),p.getLatitude() + " - "+p.getLongitude(), Toast.LENGTH_LONG).show();
-
-                return false;
-            }
-
-            @Override
-            public boolean longPressHelper(GeoPoint p) {
-                newMarkerButton.show();
-                ItemPagerAdapter adapter = new ItemPagerAdapter(MainActivity.this, new int[]{0});
-                ViewPager viewPager = coordinatorLayout.findViewById(R.id.pager);
-                viewPager.setAdapter(adapter);
-                bottom_sheet_button_desc.setText("Добавить место");
-                behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
-                final ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
-                bottom_sheet_pb.setLayoutParams(bottom_sheet_rel.getLayoutParams());
-                bottom_sheet_rel.addView(bottom_sheet_pb);
-                url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
-                Log.d(tag, "Sending request to: " + url);
-                bottomSheetTextView = findViewById(R.id.bottom_sheet_title);
-                bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
-                executeAsyncTask(new GetUrlContentTask(prefs, url, new GetUrlContentTask.AsyncResponse(){
-
-                            @SuppressLint("SetTextI18n")
-                            @Override
-                            public void processFinish(List<XMLParser.Entry> output){
-                                bottom_sheet_rel.removeView(bottom_sheet_pb);
-                                try {
-                                    if (output.get(0).house_number != null){
-                                        bottomSheetTextView.setText(output.get(0).road + " " + output.get(0).house_number);
-                                        address = (output.get(0).road + " " + output.get(0).house_number);
-                                    }
-                                    else
-                                        bottomSheetTextView.setText(output.get(0).road);
-                                    if (output.get(0).city != null) {
-                                        bottomSheetTextViewSubtitle.setText(output.get(0).city);
-                                        city = output.get(0).city;
-                                        SharedPreferences.Editor editor = prefs.edit();
-                                        editor.putString("city", String.valueOf(output.get(0).city));
-                                        editor.apply();
-                                    }
-                                } catch (Exception e) {
-                                    bottomSheetTextView.setText("Невозможно загрузить адрес");
-                                    bottomSheetTextViewSubtitle.setText(output.toString());
-                                }
-                            }
-                        }));
-                Marker startMarker = new Marker(map);
-                startMarker.setPosition(p);
-                startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-                map.getOverlays().add(startMarker);
-                map.invalidate();
-                marker_geopostition = p;
-                Log.d(tag, "Marker geoposition: " + String.valueOf(p.getLatitude() - prefs.getFloat("Latitude", 59.93863f)) + ", " + String.valueOf(p.getLongitude() - prefs.getFloat("Longitude", 30.31413f)));
-                bottom_sheet_rel.removeAllViews();
-                bottom_sheet_comments_layout.removeAllViews();
-                /*ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
-                params.height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 620, getResources().getDisplayMetrics());
-                params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-                bottom_sheet_comments_layout.setLayoutParams(params);*/
-                TextView elements_textView = new TextView(MainActivity.this);
-                elements_textView.setText("По этой точке еще нет информации о доступных магазинах. Вы можете добавить новое место, нажав на кнопку.");
-                elements_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
-                bottom_sheet_rel.addView(elements_textView);
-                startMarker.setIcon(getResources().getDrawable(R.drawable.ic_marker_confirmed));
-                startMarker.setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
-                    @Override
-                    public boolean onMarkerClick(Marker item, MapView arg1)
-                    {
-                        bottom_sheet_button_desc.setText("Добавить место");
-                        bottom_sheet_rel.addView(bottom_sheet_pb);
-                        url = "https://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + marker_geopostition.getLatitude() + "&lon=" + marker_geopostition.getLongitude() + "&zoom=18&addressdetails=1";
-                        Log.d(tag, "Sending request to: " + url);
-                        bottomSheetTextView = findViewById(R.id.bottom_sheet_title);
-                        bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
-                        executeAsyncTask(new GetUrlContentTask(prefs, url, new GetUrlContentTask.AsyncResponse(){
-
-                            @SuppressLint("SetTextI18n")
-                            @Override
-                            public void processFinish(List<XMLParser.Entry> output){
-                                bottom_sheet_rel.removeView(bottom_sheet_pb);
-                                try {
-                                    if (output.get(0).house_number != null){
-                                        bottomSheetTextView.setText(output.get(0).road + " " + output.get(0).house_number);
-                                        address = (output.get(0).road + " " + output.get(0).house_number);
-                                    }
-                                    else
-                                        bottomSheetTextView.setText(output.get(0).road);
-                                    if (output.get(0).city != null) {
-                                        bottomSheetTextViewSubtitle.setText(output.get(0).city);
-                                        city = output.get(0).city;
-                                        SharedPreferences.Editor editor = prefs.edit();
-                                        editor.putString("city", String.valueOf(output.get(0).city));
-                                        editor.apply();
-                                    }
-                                } catch (Exception e) {
-                                    bottomSheetTextView.setText("Невозможно загрузить адрес");
-                                    bottomSheetTextViewSubtitle.setText(output.toString());
-                                }
-                            }
-                        }));
-                        bottom_sheet_rel.removeAllViews();
-                        bottom_sheet_comments_layout.removeAllViews();
-                        TextView elements_textView = new TextView(MainActivity.this);
-                        elements_textView.setText("По этой точке еще нет информации о доступных магазинах. Вы можете добавить новое место, нажав на кнопку.");
-                        elements_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
-                        bottom_sheet_rel.addView(elements_textView);
-                        return true;
-                    }
-                });
-                return false;
-            }
-        };
-        MapEventsOverlay OverlayEvents = new MapEventsOverlay(getBaseContext(), mReceive);
-        map.getOverlays().add(OverlayEvents);
-
-    }
-
-
     private LocationListener myLocationListener
             = new LocationListener() {
 
@@ -678,7 +106,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 mapController.setCenter(locGeoPoint);
                 mapController.zoomTo(17);
                 my_location_marker.setPosition(locGeoPoint);
-                map.invalidate();
+                SearchForMarkersFunc();
+                Log.d("LogDebug", "My location marker moved to: " + String.valueOf(locGeoPoint.getLatitude() + ", " + String.valueOf(locGeoPoint.getLongitude())));
                 prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
                 SharedPreferences.Editor editor = prefs.edit();
                 float Latitude = (float) location.getLatitude();
@@ -688,8 +117,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf(prefs.getFloat("Longitude", Longitude)));
                 editor.apply();
                 geodata_updated = true;
-            }
-            else {
+                dialog.dismiss();
+            } else {
                 GeoPoint locGeoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
                 my_location_marker.setPosition(locGeoPoint);
             }
@@ -722,49 +151,776 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, params);
     }
 
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.remove("lastmarker");
+        editor.apply();
+        setContentView(R.layout.activity_main);
+        dialog=new ProgressDialog(MainActivity.this);
+        dialog.setMessage("Собираем стеклотару...");
+        dialog.setCancelable(false);
+        dialog.setInverseBackgroundForced(false);
+        dialog.show();
+        Context ctx = getApplicationContext();
+        Configuration.getInstance().load(ctx, prefs);
+        Configuration.getInstance().setUserAgentValue("CB");
+        permsRequestCode = 1;
+        GetLocPermission();
+        map = findViewById(R.id.map);
+        map.setTileSource(TileSourceFactory.MAPNIK);
+        map.setMultiTouchControls(true);
+        mapController = map.getController();
+        mapController.setZoom(15);
+        GeoPoint startPoint = new GeoPoint(prefs.getFloat("Latitude", 59.93863f), prefs.getFloat("Longitude", 30.31413f));
+        Log.d(tag, "Loaded Geoposition: " + String.valueOf(prefs.getFloat("Latitude", 59.93863f)) + "  " + String.valueOf(prefs.getFloat("Longitude", 30.31413f)));
+        mapController.animateTo(startPoint);
+        my_location_marker = new Marker(map);
+        my_location_marker.setPosition(startPoint);
+        Log.d("LogDebug", "My location marker moved to: " + String.valueOf(startPoint.getLatitude() + ", " + String.valueOf(startPoint.getLongitude())));
+        my_location_marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
+        my_location_marker.setIcon(getResources().getDrawable(R.drawable.ic_person_pin_circle_black_48px));
+        map.getOverlays().add(my_location_marker);
+        geodata_updated = false;
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        assert locationManager != null;
+        locationManager.removeUpdates(myLocationListener);
+        if (!prefs.contains("username")) {
+            startActivity(new Intent(MainActivity.this, LoginActivity.class));
+        } else if (!prefs.getString("username", "skipped").equals("skipped")) {
+            NavigationView navigationView = findViewById(R.id.nav_view);
+            Menu menu = navigationView.getMenu();
+            MenuItem nav_account = menu.findItem(R.id.nav_account);
+            nav_account.setTitle("Информация об аккаунте");
+            final String entrance_server_address = "https://178.162.41.115/get_daily.php";
+            List<NameValuePair> username_data = new ArrayList<>();
+            username_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
+            executeAsyncTask(new EntranceTask(entrance_server_address, username_data, MainActivity.this.getApplicationContext(), new EntranceTask.AsyncResponse() {
+                @Override
+                public void processFinish(String output) {
+                    if (output.equals("1")) {
+                        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+                        final View view = inflater.inflate(R.layout.entrance_popup_window_layout, null);
+                        final AlertDialog builder = new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("Рейтинг")
+                                .setView(view)
+                                .setPositiveButton("Закрыть", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.dismiss();
+                                    }
+                                }).create();
+                        builder.show();
+                    }
+                }
+            }));
+            final View nav_header = navigationView.getHeaderView(0);
+            final TextView nav_title = nav_header.findViewById(R.id.nav_title);
+            final TextView nav_subtitle = nav_header.findViewById(R.id.nav_subtitle);
+            nav_title.setText(prefs.getString("username", "Имя пользователя"));
+            nav_subtitle.setText(prefs.getString("status", "Участник закрытого бета-теста"));
+        }
+        final Toolbar toolbar = findViewById(R.id.toolbar);
+        final AppBarLayout appbar = findViewById(R.id.appbar);
+        setSupportActionBar(toolbar);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.addDrawerListener(toggle);
+        toggle.syncState();
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
+        marker_geopostition = null;
+        address = null;
+        city = null;
+        final CoordinatorLayout coordinatorLayout = findViewById(R.id.coordinatorlayout);
+        View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
+        final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
+        behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_HIDDEN);
 
+        //setting listener for locButton
+        LocButton = coordinatorLayout.findViewById(R.id.locButton);
+        LocButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
+                if (permission == PermissionChecker.PERMISSION_GRANTED) {
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
+                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
+                    Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    int MIN_TIME_BW_UPDATES = 10000;
+                    int MIN_DISTANCE_CHANGE_FOR_UPDATES = 10000;
+                    try {
+                        locationManager = (LocationManager) getApplicationContext()
+                                .getSystemService(LOCATION_SERVICE);
+
+                        boolean isGPSEnabled = locationManager
+                                .isProviderEnabled(LocationManager.GPS_PROVIDER);
+
+                        boolean isPassiveEnabled = locationManager
+                                .isProviderEnabled(LocationManager.PASSIVE_PROVIDER);
+
+                        boolean isNetworkEnabled = locationManager
+                                .isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+
+                        if (isGPSEnabled || isNetworkEnabled || isPassiveEnabled) {
+                            // if GPS Enabled get lat/long using GPS Services
+                            if (isGPSEnabled) {
+                                locationManager.requestLocationUpdates(
+                                        LocationManager.GPS_PROVIDER,
+                                        MIN_TIME_BW_UPDATES,
+                                        MIN_DISTANCE_CHANGE_FOR_UPDATES, myLocationListener);
+                                Log.d("GPS", "GPS Enabled");
+                                if (locationManager != null) {
+                                    location = locationManager
+                                            .getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                                }
+                            }
+                            if (isPassiveEnabled) {
+                                locationManager.requestLocationUpdates(
+                                        LocationManager.PASSIVE_PROVIDER,
+                                        MIN_TIME_BW_UPDATES,
+                                        MIN_DISTANCE_CHANGE_FOR_UPDATES, myLocationListener);
+                                Log.d("Network", "Network Enabled");
+                                if (locationManager != null) {
+                                    location = locationManager
+                                            .getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+                                }
+                            }
+
+                            if (isNetworkEnabled) {
+                                locationManager.requestLocationUpdates(
+                                        LocationManager.NETWORK_PROVIDER,
+                                        MIN_TIME_BW_UPDATES,
+                                        MIN_DISTANCE_CHANGE_FOR_UPDATES, myLocationListener);
+                                Log.d("Network", "Network Enabled");
+                                if (locationManager != null) {
+                                    location = locationManager
+                                            .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                                }
+                            }
+                            updateLoc(location);
+                            if (mapController.zoomIn())
+                                mapController.zoomOut();
+                        } else {
+                            Toast.makeText(MainActivity.this, "Не удалось загрузить информацию о местоположении", Toast.LENGTH_LONG).show();
+                        }
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    GetLocPermission();
+                }
+            }
+        });
+
+        bottomSheetTextView = bottomSheet.findViewById(R.id.bottom_sheet_title);
+        bottomSheetTextViewSubtitle = bottomSheet.findViewById(R.id.bottom_sheet_subtitle);
+        bottom_sheet_comments_layout = findViewById(R.id.bottom_sheet_comments_layout);
+        bottom_sheet_rel = findViewById(R.id.bottom_sheet_rel);
+        bottom_sheet_button_desc = findViewById(R.id.bottom_sheet_button_desc);
+        final ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
+        bottom_sheet_pb.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+        SearchButton = coordinatorLayout.findViewById(R.id.searchButton);
+        SearchButton.setOnClickListener(new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
+                                                SearchForMarkersFunc();
+                                            }
+                                        }
+        );
+        final FloatingActionButton newMarkerButton = coordinatorLayout.findViewById(R.id.new_marker_button);
+        behavior.addBottomSheetCallback(new BottomSheetBehaviorGoogleMapsLike.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                switch (newState) {
+                    case BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED:
+                        Log.d("bottomsheet-", "STATE_COLLAPSED");
+                        /*int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
+                        if (permission == PermissionChecker.PERMISSION_GRANTED) {
+                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
+                            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
+                            Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                            GeoPoint last_location_to_animate = new GeoPoint(lastLocation.getLatitude() - 0.0025, lastLocation.getLongitude());
+                            mapController.animateTo(last_location_to_animate);
+                        }*/
+                        appbar.setElevation(10.5f);
+                        toolbar.setVisibility(View.VISIBLE);
+                        LocButton.setVisibility(View.VISIBLE);
+                        SearchButton.setVisibility(View.VISIBLE);
+                        newMarkerButton.show();
+                        break;
+                    case BottomSheetBehaviorGoogleMapsLike.STATE_DRAGGING:
+                        Log.d("bottomsheet-", "STATE_DRAGGING");
+                        break;
+                    case BottomSheetBehaviorGoogleMapsLike.STATE_EXPANDED:
+                        toolbar.setVisibility(View.INVISIBLE);
+                        appbar.setElevation(0f);
+                        Log.d("bottomsheet-", "STATE_EXPANDED");
+                        break;
+                    case BottomSheetBehaviorGoogleMapsLike.STATE_ANCHOR_POINT:
+                        toolbar.setVisibility(View.VISIBLE);
+                        appbar.setElevation(10.5f);
+                        GeoPoint marker_geoposition_to_animate = new GeoPoint(marker_geopostition.getLatitude() - 0.0025, marker_geopostition.getLongitude());
+                        mapController.setZoom(17);
+                        mapController.animateTo(marker_geoposition_to_animate);
+                        Log.d("bottomsheet-", "STATE_ANCHOR_POINT");
+                        break;
+                    case BottomSheetBehaviorGoogleMapsLike.STATE_HIDDEN:
+                        Log.d("bottomsheet-", "STATE_HIDDEN");
+                        break;
+                    default:
+                        Log.d("bottomsheet-", "STATE_SETTLING");
+                        break;
+                    case BottomSheetBehaviorGoogleMapsLike.STATE_SETTLING:
+                        break;
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                LocButton.setVisibility(View.INVISIBLE);
+                SearchButton.setVisibility(View.INVISIBLE);
+            }
+        });
+        AppBarLayout mergedAppBarLayout = findViewById(R.id.merged_appbarlayout);
+        MergedAppBarLayoutBehavior mergedAppBarLayoutBehavior = MergedAppBarLayoutBehavior.from(mergedAppBarLayout);
+        mergedAppBarLayoutBehavior.setToolbarTitle("Информация о месте");
+        mergedAppBarLayoutBehavior.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
+            }
+        });
+        newMarkerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (bottom_sheet_button_desc.getText() == "Добавить место") {
+                    if (!prefs.getString("username", "skipped").equals("skipped")) {
+                        final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
+                        executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
+                            @Override
+                            public void processFinish(List<String> output) {
+                                try {
+                                    if (Integer.valueOf(output.get(1)) > 0) {
+                                        Intent intent = new Intent(MainActivity.this, NewMarkerActivity.class);
+                                        try {
+                                            intent.putExtra("city", city);
+                                            intent.putExtra("latitude", marker_geopostition.getLatitude());
+                                            intent.putExtra("longitude", marker_geopostition.getLongitude());
+                                            intent.putExtra("address", address);
+                                            intent.putExtra("reputation", output.get(0));
+                                            startActivity(intent);
+                                        } catch (NullPointerException e) {
+                                            Log.d(tag, "A failure accured while creating new marker:" + e.getMessage());
+                                        }
+                                    } else {
+                                        Toast.makeText(MainActivity.this, "Недостаточно крышек :(", Toast.LENGTH_SHORT).show();
+                                    }
+                                } catch (IndexOutOfBoundsException e) {
+                                    Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        }));
+                    } else
+                        Toast.makeText(MainActivity.this, "Для добавления места необходима регистрация", Toast.LENGTH_SHORT).show();
+                } else if (bottom_sheet_button_desc.getText() == "Добавить комментарий") {
+                    if (!prefs.getString("username", "skipped").equals("skipped"))
+                        onButtonShowPopupWindowClick(findViewById(R.id.coordinatorlayout), prefs.getInt("marker_id", 0));
+                    else
+                        Toast.makeText(MainActivity.this, "Для добавления комментария необходима регистрация", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        final SearchView searchBar = findViewById(R.id.search_bar);
+        View v = searchBar.findViewById(android.support.v7.appcompat.R.id.search_plate);
+        v.setBackgroundColor(MainActivity.this.getResources().getColor(R.color.colorAccent));
+        ImageView magImage = searchBar.findViewById(android.support.v7.appcompat.R.id.search_mag_icon);
+        magImage.setLayoutParams(new LinearLayout.LayoutParams(0, 0));
+        searchBar.setQueryHint("Нажмите для поиска по адресу");
+        searchBar.setIconifiedByDefault(false);
+        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        searchBar.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+        final List<String> suggestions = new ArrayList<>();
+        final CursorAdapter suggestionAdapter = new SimpleCursorAdapter(this,
+                android.R.layout.simple_list_item_1,
+                null,
+                new String[]{SearchManager.SUGGEST_COLUMN_TEXT_1},
+                new int[]{android.R.id.text1},
+                0);
+
+        searchBar.setSuggestionsAdapter(suggestionAdapter);
+
+        searchBar.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
+            @Override
+            public boolean onSuggestionSelect(int position) {
+                return false;
+            }
+
+            @Override
+            public boolean onSuggestionClick(final int position) {
+                String[] search = searchBar.getQuery().toString().split("\\s+");
+                String jsonsearch = "";
+                for (int i = 0; i < search.length; i++) {
+                    jsonsearch += search[i];
+                    if ((search.length - i) > 1)
+                        jsonsearch += "+";
+                }
+                jsonsearch += ",+" + prefs.getString("city", "Санкт-Петербург");
+                executeAsyncTask(new GeoSearchTask(jsonsearch, prefs.getString("city", "Санкт-Петербург"), MainActivity.this.getApplicationContext(), new GeoSearchTask.AsyncResponse() {
+                    @Override
+                    public void processFinish(ArrayList<JSONObject> output) {
+                        if (!output.isEmpty()) {
+                            try {
+                                final GeoPoint searchpoint = new GeoPoint(output.get(position).getDouble("lat"), output.get(position).getDouble("lon"));
+                                ShowMarker(searchpoint);
+                                mapController.animateTo(searchpoint);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        } else
+                            Toast.makeText(MainActivity.this, "По Вашему запросу не удалось ничего найти", Toast.LENGTH_SHORT).show();
+                    }
+                }));
+                searchBar.setQuery(suggestions.get(position), true);
+                searchBar.clearFocus();
+                return true;
+            }
+        });
+        searchBar.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                String[] search = query.split("\\s+");
+                String jsonsearch = "";
+                for (int i = 0; i < search.length; i++) {
+                    jsonsearch += search[i];
+                    if ((search.length - i) > 1)
+                        jsonsearch += "+";
+                }
+                jsonsearch += ",+" + prefs.getString("city", "Санкт-Петербург");
+                executeAsyncTask(new GeoSearchTask(jsonsearch, prefs.getString("city", "Санкт-Петербург"), MainActivity.this.getApplicationContext(), new GeoSearchTask.AsyncResponse() {
+                    @Override
+                    public void processFinish(ArrayList<JSONObject> output) {
+                        if (!output.isEmpty()) {
+                            try {
+                                final GeoPoint searchpoint = new GeoPoint(output.get(0).getDouble("lat"), output.get(0).getDouble("lon"));
+                                ShowMarker(searchpoint);
+                                mapController.animateTo(searchpoint);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        } else
+                            Toast.makeText(MainActivity.this, "По Вашему запросу не удалось ничего найти", Toast.LENGTH_SHORT).show();
+                    }
+                }));
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                suggestions.clear();
+                String[] search = newText.split("\\s+");
+                String jsonsearch = "";
+                for (int i = 0; i < search.length; i++) {
+                    jsonsearch += search[i];
+                    if ((search.length - i) > 1)
+                        jsonsearch += "+";
+                }
+                jsonsearch += ",+" + prefs.getString("city", "Санкт-Петербург");
+                executeAsyncTask(new GeoSearchTask(jsonsearch, prefs.getString("city", "Санкт-Петербург"), MainActivity.this.getApplicationContext(), new GeoSearchTask.AsyncResponse() {
+                    @Override
+                    public void processFinish(ArrayList<JSONObject> output) {
+                        for (int i = 0; i < output.size(); i++)
+                            try {
+                                suggestions.add(output.get(i).getString("display_name"));
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        String[] columns = {BaseColumns._ID,
+                                SearchManager.SUGGEST_COLUMN_TEXT_1,
+                                SearchManager.SUGGEST_COLUMN_INTENT_DATA,
+                        };
+                        MatrixCursor cursor = new MatrixCursor(columns);
+                        for (int i = 0; i < suggestions.size(); i++) {
+                            String[] tmp = {Integer.toString(i), suggestions.get(i), suggestions.get(i)};
+                            cursor.addRow(tmp);
+                        }
+                        suggestionAdapter.swapCursor(cursor);
+                    }
+                }));
+                return false;
+            }
+        });
+
+        MapEventsReceiver mReceive = new MapEventsReceiver() {
+            @Override
+            public boolean singleTapConfirmedHelper(GeoPoint p) {
+                //Toast.makeText(getBaseContext(),p.getLatitude() + " - "+p.getLongitude(), Toast.LENGTH_LONG).show();
+
+                return false;
+            }
+
+            @Override
+            public boolean longPressHelper(GeoPoint p) {
+                ShowMarker(p);
+                return false;
+            }
+        };
+        MapEventsOverlay OverlayEvents = new MapEventsOverlay(getBaseContext(), mReceive);
+        map.getOverlays().add(OverlayEvents);
+        executeAsyncTask(new AdMobTask(15000, new AdMobTask.AsyncResponse() {
+            @Override
+            public void processFinish(boolean output) {
+                if (output)
+                    ShowAd();
+            }
+        }));
+    }
+
+    public void ShowMarker(GeoPoint p) {
+        final CoordinatorLayout coordinatorLayout = findViewById(R.id.coordinatorlayout);
+        View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
+        final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
+        final FloatingActionButton newMarkerButton = coordinatorLayout.findViewById(R.id.new_marker_button);
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        if (prefs.contains("lastmarker"))
+            map.getOverlays().remove(prefs.getInt("lastmarker", 0));
+        ItemPagerAdapter adapter = new ItemPagerAdapter(MainActivity.this, new int[]{0});
+        ViewPager viewPager = coordinatorLayout.findViewById(R.id.pager);
+        viewPager.setAdapter(adapter);
+        bottom_sheet_button_desc.setText("Добавить место");
+        behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
+        final ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
+        bottom_sheet_pb.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+        bottom_sheet_rel.addView(bottom_sheet_pb);
+        url = "https://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + p.getLatitude() + "&lon=" + p.getLongitude() + "&zoom=18&addressdetails=1";
+        Log.d(tag, "Sending request to: " + url);
+        bottomSheetTextView = findViewById(R.id.bottom_sheet_title);
+        bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
+        executeAsyncTask(new GetUrlContentTask(prefs, url, "reversegeocode", "addressparts", new GetUrlContentTask.AsyncResponse() {
+
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void processFinish(List<XMLParser.Entry> output) {
+                bottom_sheet_rel.removeView(bottom_sheet_pb);
+                try {
+                    if (output.get(0).house_number != null) {
+                        bottomSheetTextView.setText(output.get(0).road + " " + output.get(0).house_number);
+                        address = (output.get(0).road + " " + output.get(0).house_number);
+                    } else
+                        bottomSheetTextView.setText(output.get(0).road);
+                    if (output.get(0).city != null) {
+                        bottomSheetTextViewSubtitle.setText(output.get(0).city);
+                        city = output.get(0).city;
+                        SharedPreferences.Editor editor = prefs.edit();
+                        editor.putString("city", String.valueOf(output.get(0).city));
+                        editor.apply();
+                    }
+                } catch (Exception e) {
+                    bottomSheetTextView.setText("Невозможно загрузить адрес");
+                    bottomSheetTextViewSubtitle.setText(output.toString());
+                }
+            }
+        }));
+        Marker startMarker = new Marker(map);
+        startMarker.setPosition(p);
+        startMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+        map.getOverlays().add(startMarker);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putInt("lastmarker", map.getOverlays().indexOf(startMarker));
+        editor.apply();
+        marker_geopostition = p;
+        Log.d(tag, "Marker geoposition: " + String.valueOf(p.getLatitude() - prefs.getFloat("Latitude", 59.93863f)) + ", " + String.valueOf(p.getLongitude() - prefs.getFloat("Longitude", 30.31413f)));
+        bottom_sheet_rel.removeAllViews();
+        bottom_sheet_comments_layout.removeAllViews();
+
+        TextView elements_textView = new TextView(MainActivity.this);
+        elements_textView.setText("По этой точке еще нет информации о доступных магазинах. Вы можете добавить новое место, нажав на кнопку.");
+        elements_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+        elements_textView.setTextSize(18);
+        bottom_sheet_rel.addView(elements_textView);
+        startMarker.setIcon(getResources().getDrawable(R.drawable.ic_add_location_black_48px));
+        startMarker.setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker item, MapView arg1) {
+                bottom_sheet_button_desc.setText("Добавить место");
+                bottom_sheet_rel.addView(bottom_sheet_pb);
+                url = "https://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + marker_geopostition.getLatitude() + "&lon=" + marker_geopostition.getLongitude() + "&zoom=18&addressdetails=1";
+                Log.d(tag, "Sending request to: " + url);
+                bottomSheetTextView = findViewById(R.id.bottom_sheet_title);
+                bottomSheetTextViewSubtitle = findViewById(R.id.bottom_sheet_subtitle);
+                executeAsyncTask(new GetUrlContentTask(prefs, url, "reversegeocode", "addressparts", new GetUrlContentTask.AsyncResponse() {
+
+                    @SuppressLint("SetTextI18n")
+                    @Override
+                    public void processFinish(List<XMLParser.Entry> output) {
+                        bottom_sheet_rel.removeView(bottom_sheet_pb);
+                        try {
+                            if (output.get(0).house_number != null) {
+                                bottomSheetTextView.setText(output.get(0).road + " " + output.get(0).house_number);
+                                address = (output.get(0).road + " " + output.get(0).house_number);
+                            } else
+                                bottomSheetTextView.setText(output.get(0).road);
+                            if (output.get(0).city != null) {
+                                bottomSheetTextViewSubtitle.setText(output.get(0).city);
+                                city = output.get(0).city;
+                                SharedPreferences.Editor editor = prefs.edit();
+                                editor.putString("city", String.valueOf(output.get(0).city));
+                                editor.apply();
+                            }
+                        } catch (Exception e) {
+                            bottomSheetTextView.setText("Невозможно загрузить адрес");
+                            bottomSheetTextViewSubtitle.setText(output.toString());
+                        }
+                    }
+                }));
+                bottom_sheet_rel.removeAllViews();
+                bottom_sheet_comments_layout.removeAllViews();
+                TextView elements_textView = new TextView(MainActivity.this);
+                elements_textView.setText("По этой точке еще нет информации о доступных магазинах. Вы можете добавить новое место, нажав на кнопку.");
+                elements_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+                elements_textView.setTextSize(18);
+                bottom_sheet_rel.addView(elements_textView);
+                return true;
+            }
+        });
+    }
+
+    private void SearchForMarkersFunc() {
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        final CoordinatorLayout coordinatorLayout = findViewById(R.id.coordinatorlayout);
+        View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
+        bottomSheetTextView = bottomSheet.findViewById(R.id.bottom_sheet_title);
+        bottomSheetTextViewSubtitle = bottomSheet.findViewById(R.id.bottom_sheet_subtitle);
+        bottom_sheet_comments_layout = findViewById(R.id.bottom_sheet_comments_layout);
+        bottom_sheet_rel = findViewById(R.id.bottom_sheet_rel);
+        bottom_sheet_button_desc = findViewById(R.id.bottom_sheet_button_desc);
+        final ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
+        final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
+        executeAsyncTask(new SearchForMarkersTask(String.valueOf(prefs.getFloat("Latitude", 59.93863f)), String.valueOf(prefs.getFloat("Longitude", 30.31413f)), prefs.getString("city", "Санкт-Петербург"), MainActivity.this.getApplicationContext(),
+                new SearchForMarkersTask.AsyncResponse() {
+                    @Override
+                    public void processFinish(List<String> output) {
+                        try {
+                            Double latitude;
+                            Double longitude;
+                            int id;
+                            int conf_status;
+                            String[] latitude_split = output.get(1).split("\\s+");
+                            String[] longitude_split = output.get(2).split("\\s+");
+                            String[] id_split = output.get(0).split("\\s+");
+                            String[] conf_status_split = output.get(3).split("\\s+");
+                            final SearchForMarkersTask.GenSet<Marker> startMarker = new SearchForMarkersTask.GenSet<>(Marker.class, id_split.length);
+                            final String entry_data_server_address = "https://178.162.41.115/get_entry_details.php";
+                            final String comments_data_server_address = "https://178.162.41.115/get_comments.php";
+                            for (int i = 0; i < id_split.length; i++) {
+                                latitude = Double.valueOf(latitude_split[i]);
+                                longitude = Double.valueOf(longitude_split[i]);
+                                id = Integer.valueOf(id_split[i]);
+                                conf_status = Integer.valueOf(conf_status_split[i]);
+                                Log.d(tag, "Split markers data info: " + latitude + " " + longitude + " " + id + " with array length: " + id_split.length);
+                                GeoPoint p = new GeoPoint(latitude, longitude);
+                                startMarker.a[i] = new Marker(map);
+                                startMarker.a[i].setPosition(p);
+                                startMarker.a[i].setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+                                startMarker.a[i].setTitle(String.valueOf(id));
+                                if (conf_status >= 200)
+                                    startMarker.a[i].setIcon(getResources().getDrawable(R.drawable.ic_place_black_48px));
+                                else
+                                    startMarker.a[i].setIcon(getResources().getDrawable(R.drawable.ic_edit_location_black_48px));
+                                final int final_i = i;
+                                map.getOverlays().add(startMarker.a[i]);
+                                startMarker.a[i].setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
+                                    @Override
+                                    public boolean onMarkerClick(Marker item, MapView arg1) {
+                                        bottom_sheet_rel.removeAllViews();
+                                        bottom_sheet_button_desc.setText("Добавить комментарий");
+                                        behavior.setState(BottomSheetBehaviorGoogleMapsLike.STATE_COLLAPSED);
+                                        bottom_sheet_rel.addView(bottom_sheet_pb);
+                                        SharedPreferences.Editor editor = prefs.edit();
+                                        editor.putInt("marker_id", Integer.valueOf(startMarker.a[final_i].getTitle()));
+                                        editor.apply();
+                                                                    /*ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
+                                                                    params.height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 420, getResources().getDisplayMetrics());
+                                                                    params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                                                                    bottom_sheet_comments_layout.setLayoutParams(params);*/
+                                        executeAsyncTask(new GetEntryDataTask(entry_data_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetEntryDataTask.AsyncResponse() {
+
+                                            @Override
+                                            public void processFinish(final List<String> output) {
+                                                try {
+                                                    bottom_sheet_rel.removeAllViews();
+                                                    bottom_sheet_comments_layout.removeAllViews();
+                                                    if ((!prefs.getString("username", "skipped").equals("skipped")) && output.get(9).equals("1") && (!output.get(8).equals(prefs.getString("username", "skipped")))) {
+                                                        final Button confirm = new Button(MainActivity.this);
+                                                        final Button dismiss = new Button(MainActivity.this);
+                                                        confirm.setText("Подтвердить место");
+                                                        dismiss.setText("Пожаловаться");
+                                                        confirm.setBackground(getResources().getDrawable(R.color.colorPrimaryDark));
+                                                        dismiss.setBackground(getResources().getDrawable(R.color.colorPrimaryDark));
+                                                        confirm.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+                                                        dismiss.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+                                                        bottom_sheet_rel.addView(confirm);
+                                                        bottom_sheet_rel.addView(dismiss);
+                                                        final String conf_server_address = "https://178.162.41.115/change_entry_status.php";
+                                                        confirm.setOnClickListener(new View.OnClickListener() {
+                                                            @Override
+                                                            public void onClick(View view) {
+                                                                final List<NameValuePair> conf_data = new ArrayList<>();
+                                                                conf_data.add(new BasicNameValuePair("id", output.get(10)));
+                                                                conf_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
+                                                                final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
+                                                                executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
+                                                                    @Override
+                                                                    public void processFinish(List<String> output) {
+                                                                        try {
+                                                                            conf_data.add(new BasicNameValuePair("confirmation_status", output.get(0)));
+                                                                            executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data, MainActivity.this.getApplicationContext()));
+                                                                            confirm.setEnabled(false);
+                                                                            dismiss.setEnabled(false);
+                                                                            Toast.makeText(MainActivity.this, "Спасибо за Ваш голос! Вы получили несколько бутылок", Toast.LENGTH_SHORT).show();
+                                                                        } catch (IndexOutOfBoundsException e) {
+                                                                            Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
+                                                                        }
+                                                                    }
+                                                                }));
+                                                            }
+                                                        });
+                                                        dismiss.setOnClickListener(new View.OnClickListener() {
+                                                            @Override
+                                                            public void onClick(View view) {
+                                                                final List<NameValuePair> conf_data = new ArrayList<>();
+                                                                conf_data.add(new BasicNameValuePair("id", output.get(10)));
+                                                                conf_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
+                                                                final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
+                                                                executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
+                                                                    @Override
+                                                                    public void processFinish(List<String> output) {
+                                                                        try {
+                                                                            conf_data.add(new BasicNameValuePair("confirmation_status", "-" + output.get(0)));
+                                                                            executeAsyncTask(new ChangeEntryConfirmationTask(conf_server_address, conf_data, MainActivity.this.getApplicationContext()));
+                                                                            confirm.setEnabled(false);
+                                                                            dismiss.setEnabled(false);
+                                                                            Toast.makeText(MainActivity.this, "Спасибо за Ваш голос! Вы получили несколько бутылок", Toast.LENGTH_SHORT).show();
+                                                                        } catch (IndexOutOfBoundsException e) {
+                                                                            Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
+                                                                        }
+                                                                    }
+                                                                }));
+                                                            }
+                                                        });
+                                                    }
+                                                    marker_geopostition = new GeoPoint(Double.valueOf(output.get(6)), Double.valueOf(output.get(7)));
+                                                    bottomSheetTextView.setText(output.get(0));
+                                                    bottomSheetTextViewSubtitle.setText(output.get(1));
+                                                    TextView wh_textView = new TextView(MainActivity.this);
+                                                    TextView r_textView = new TextView(MainActivity.this);
+                                                    if (Integer.valueOf(output.get(2)) == 1)
+                                                        wh_textView.setText("Магазин работает до 22:00");
+                                                    else
+                                                        wh_textView.setText("Магазин работает круглосуточно");
+                                                    if (Integer.valueOf(output.get(3)) == 1)
+                                                        r_textView.setText("В продаже имеются только слабоалкогольные напитки");
+                                                    else
+                                                        r_textView.setText("Широкий ассортимент");
+                                                    wh_textView.setTextSize(18);
+                                                    r_textView.setTextSize(18);
+                                                    wh_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+                                                    r_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+                                                    bottom_sheet_rel.addView(wh_textView);
+                                                    bottom_sheet_rel.addView(r_textView);
+                                                                                /*ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
+                                                                                params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                                                                                params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                                                                                bottom_sheet_comments_layout.setLayoutParams(params);*/
+                                                    TextView header = new TextView(MainActivity.this);
+                                                    header.setText("Комментарии:");
+                                                    header.setTextSize(18);
+                                                    header.setLayoutParams(bottom_sheet_comments_layout.getLayoutParams());
+                                                    bottom_sheet_comments_layout.addView(header);
+                                                    if ((!output.get(5).equals("No value for comments")) && (!output.get(5).isEmpty())) {
+                                                        TextView comments_textview = new TextView(MainActivity.this);
+                                                        comments_textview.setText(output.get(8) + "\n" + output.get(5));
+                                                        comments_textview.setTextSize(18);
+                                                        comments_textview.setLayoutParams(bottom_sheet_comments_layout.getLayoutParams());
+                                                        bottom_sheet_comments_layout.addView(comments_textview);
+                                                    }
+                                                    executeAsyncTask(new GetCommentsTask(comments_data_server_address, Integer.valueOf(startMarker.a[final_i].getTitle()), MainActivity.this.getApplicationContext(), new GetCommentsTask.AsyncResponse() {
+                                                        @SuppressLint("SetTextI18n")
+                                                        @Override
+                                                        public void processFinish(List<String> output) {
+                                                            try {
+                                                                if (output.get(0).equals("1")) {
+                                                                    String username;
+                                                                    String comments;
+                                                                    String[] username_split = output.get(1).split("\\n+");
+                                                                    String[] comments_split = output.get(2).split("\\n+");
+                                                                    Log.d(tag, "Split username, length, comments:" + Arrays.toString(username_split) + " " + username_split.length + " " + Arrays.toString(comments_split));
+                                                                    final GetCommentsTask.GenSet<TextView> comments_data = new GetCommentsTask.GenSet<>(TextView.class, username_split.length);
+                                                                    for (int i = 0; i < username_split.length; i++) {
+                                                                        username = username_split[i];
+                                                                        comments = comments_split[i];
+                                                                        comments_data.a[i] = new TextView(MainActivity.this);
+                                                                        comments_data.a[i].setText(username + "\n" + comments);
+                                                                        comments_data.a[i].setTextSize(18);
+                                                                        comments_data.a[i].setLayoutParams(bottom_sheet_comments_layout.getLayoutParams());
+                                                                        bottom_sheet_comments_layout.addView(comments_data.a[i]);
+                                                                    }
+                                                                }
+                                                            } catch (IndexOutOfBoundsException e) {
+                                                                Toast.makeText(MainActivity.this, "Не удалось запросить информацию о комментариях", Toast.LENGTH_SHORT).show();
+                                                            }
+                                                        }
+                                                    }));
+                                                } catch (IndexOutOfBoundsException e) {
+                                                    Toast.makeText(MainActivity.this, "Не удалось запросить информацию об этом месте", Toast.LENGTH_SHORT).show();
+                                                }
+                                            }
+                                        }));
+                                        return true;
+                                    }
+                                });
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(MainActivity.this, "Не удалось запросить информацию о доступных местах", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }));
+    }
 
     public void onButtonShowPopupWindowClick(View view, final int id) {
-        CoordinatorLayout mainLayout = findViewById(R.id.coordinatorlayout);
         LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-        final View popupView = inflater.inflate(R.layout.popup_window_layout, null);
-        popupView.setAnimation(AnimationUtils.loadAnimation(this, R.anim.popup_window_animation));
-        final PopupWindow popup_window = new PopupWindow(popupView);
-        popup_window.setWidth(FrameLayout.LayoutParams.WRAP_CONTENT);
-        popup_window.setHeight(FrameLayout.LayoutParams.WRAP_CONTENT);
-        popup_window.setFocusable(true);
-        popup_window.setBackgroundDrawable(new BitmapDrawable());
-        popup_window.setOutsideTouchable(false);
-        popup_window.showAtLocation(mainLayout, Gravity.CENTER, 0 , 0);
+        final View Cview = inflater.inflate(R.layout.popup_window_layout, null);
 
-        final TextInputEditText popup_window_text = popupView.findViewById(R.id.popup_comment);
+        final TextInputEditText popup_window_text = Cview.findViewById(R.id.popup_comment);
         final String add_comment_server_address = "https://178.162.41.115/add_comment.php";
-
-        final Button popup_cancel_button = popupView.findViewById(R.id.popup_cancel);
-        popup_cancel_button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                popup_window.setAnimationStyle(R.anim.popup_window_animation);
-                popup_window.dismiss();
-            }
-        });
-        final Button popup_ok_button = popupView.findViewById(R.id.popup_account_ok);
-        prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        popup_ok_button.setOnClickListener(new View.OnClickListener() {
-            @SuppressLint("ShowToast")
-            @Override
-            public void onClick(View view) {
-                List<NameValuePair> comment_data = new ArrayList<>();
-                comment_data.add(new BasicNameValuePair("id", String.valueOf(id)));
-                comment_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
-                comment_data.add(new BasicNameValuePair("comments", popup_window_text.getText().toString()));
-                Log.d(tag, "Comment data:" + id + " " + prefs.getString("username", "skipped") + " " + popup_window_text.getText().toString());
-                executeAsyncTask(new AddCommentTask(add_comment_server_address, comment_data, MainActivity.this.getApplicationContext()));
-                Toast.makeText(MainActivity.this, "Комментарий успешно добавлен", Toast.LENGTH_SHORT).show();
-                popup_window.setAnimationStyle(R.anim.popup_window_animation);
-                popup_window.dismiss();
-            }
-        });
+        final AlertDialog builder = new AlertDialog.Builder(MainActivity.this)
+                .setTitle("Добавление нового комментария")
+                .setView(Cview)
+                .setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                    }
+                }).setPositiveButton("Отправить", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        List<NameValuePair> comment_data = new ArrayList<>();
+                        comment_data.add(new BasicNameValuePair("id", String.valueOf(id)));
+                        comment_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
+                        comment_data.add(new BasicNameValuePair("comments", popup_window_text.getText().toString()));
+                        Log.d(tag, "Comment data:" + id + " " + prefs.getString("username", "skipped") + " " + popup_window_text.getText().toString());
+                        executeAsyncTask(new AddCommentTask(add_comment_server_address, comment_data, MainActivity.this.getApplicationContext()));
+                        Toast.makeText(MainActivity.this, "Комментарий успешно добавлен", Toast.LENGTH_SHORT).show();
+                        dialogInterface.dismiss();
+                    }
+                }).create();
+        builder.show();
     }
 
     public void onResume() {
@@ -781,12 +937,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
+    public void ShowAd() {
+        /*Intent intent = new Intent(MainActivity.this, AdMobActivity.class);
+        startActivity(intent);*/
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+    }
+
     @Override
     protected void onPause() {
         // TODO Auto-generated method stub
         super.onPause();
         locationManager.removeUpdates(myLocationListener);
+    }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.remove("lastmarker");
+        editor.apply();
     }
 
     private void updateLoc(Location loc) {
@@ -795,6 +969,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
             mapController.animateTo(locGeoPoint);
             my_location_marker.setPosition(locGeoPoint);
+            Log.d("LogDebug", "My location marker moved to: " + String.valueOf(locGeoPoint.getLatitude() + ", " + String.valueOf(locGeoPoint.getLongitude())));
             prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
             SharedPreferences.Editor editor = prefs.edit();
             float Latitude = (float) loc.getLatitude();
@@ -802,13 +977,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             float Longitude = (float) loc.getLongitude();
             editor.putFloat("Longitude", Longitude);
             Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf(prefs.getFloat("Longitude", Longitude)));
-            url = "http://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + loc.getLatitude() + "&lon=" + loc.getLongitude() + "&zoom=18&addressdetails=1";
+            url = "https://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + loc.getLatitude() + "&lon=" + loc.getLongitude() + "&zoom=18&addressdetails=1";
             Log.d(tag, "Sending request to: " + url);
-            executeAsyncTask(new GetUrlContentTask(prefs, url, new GetUrlContentTask.AsyncResponse(){
+            executeAsyncTask(new GetUrlContentTask(prefs, url, "reversegeocode", "addressparts", new GetUrlContentTask.AsyncResponse() {
 
                 @SuppressLint("SetTextI18n")
                 @Override
-                public void processFinish(List<XMLParser.Entry> output){
+                public void processFinish(List<XMLParser.Entry> output) {
                     try {
                         if (output.get(0).city != null) {
                             city = output.get(0).city;
@@ -874,29 +1049,29 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     if (perms.get(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
                             || perms.get(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                             || perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                                //permission is denied (this is the first time, when "never ask again" is not checked) so ask again explaining the usage of permission
-                                // shouldShowRequestPermissionRationale will return true
-                                // show the dialog or snackbar saying its necessary and try again otherwise proceed with setup.
-                                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                                    showDialogOK(new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                            switch (which) {
-                                                case DialogInterface.BUTTON_POSITIVE:
-                                                    checkAndRequestPermissions();
-                                                    break;
-                                                case DialogInterface.BUTTON_NEGATIVE:
-                                                    // proceed with logic by disabling the related features or quit the app.
-                                                    break;
-                                            }
-                                        }
-                                    });
-                                } //permission is denied (and never ask again is checked)
-                                // shouldShowRequestPermissionRationale will return false else
-                                {
-                                    Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_LONG).show(); // //proceed with logic by disabling the related features or quit the app.
+                        //permission is denied (this is the first time, when "never ask again" is not checked) so ask again explaining the usage of permission
+                        // shouldShowRequestPermissionRationale will return true
+                        // show the dialog or snackbar saying its necessary and try again otherwise proceed with setup.
+                        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                            showDialogOK(new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    switch (which) {
+                                        case DialogInterface.BUTTON_POSITIVE:
+                                            checkAndRequestPermissions();
+                                            break;
+                                        case DialogInterface.BUTTON_NEGATIVE:
+                                            // proceed with logic by disabling the related features or quit the app.
+                                            break;
+                                    }
                                 }
-                            }
+                            });
+                        } //permission is denied (and never ask again is checked)
+                        // shouldShowRequestPermissionRationale will return false else
+                        {
+                            Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_LONG).show(); // //proceed with logic by disabling the related features or quit the app.
+                        }
+                    }
                     // process the normal flow
                     //else any one or both the permissions are not granted
                     //waitAndNavigateToOnboardingTutorial();
@@ -906,8 +1081,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void showDialogOK(DialogInterface.OnClickListener okListener) {
-        new AlertDialog.Builder(this)
-                .setMessage("Camera, Storage and Location Services Permission required for this app")
+        new Builder(this)
+                .setMessage("Для работы этого приложения требуется разрешение на использование геопозиции")
                 .setPositiveButton("OK", okListener)
                 .setNegativeButton("Cancel", okListener)
                 .create()
@@ -931,19 +1106,104 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return true;
     }*/
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
+    @NonNull
+    public Dialog CreateLeaderBoardDialog() {
+        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+        final View view = inflater.inflate(R.layout.activity_leaderboard, null);
+        final AlertDialog builder = new AlertDialog.Builder(MainActivity.this)
+                .setTitle("Рейтинг")
+                .setView(view)
+                .setPositiveButton("Закрыть", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                    }
+                }).create();
 
-        return super.onOptionsItemSelected(item);
+        final LinearLayout linearLayout = view.findViewById(R.id.leaderboard_scroll);
+        executeAsyncTask(new LeaderboardTask(prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new LeaderboardTask.AsyncResponse() {
+            @Override
+            public void processFinish(List<String> output) {
+                try {
+                    String username;
+                    String reputation;
+                    String[] username_split = output.get(0).split("\\n+");
+                    String[] reputation_split = output.get(1).split("\\n+");
+                    final LeaderboardTask.GenSet<LinearLayout> entry_linear = new LeaderboardTask.GenSet<>(LinearLayout.class, username_split.length);
+                    final LeaderboardTask.GenSet<TextView> username_text = new LeaderboardTask.GenSet<>(TextView.class, username_split.length);
+                    final LeaderboardTask.GenSet<TextView> reputation_text = new LeaderboardTask.GenSet<>(TextView.class, username_split.length);
+                    final LeaderboardTask.GenSet<TextView> place_text = new LeaderboardTask.GenSet<>(TextView.class, username_split.length);
+                    for (int i = 0; i < username_split.length; i++) {
+                        username = username_split[i];
+                        reputation = reputation_split[i];
+                        final int final_i = i + 1;
+                        Log.d(tag, "Split leaderboard data info: " + username + " " + reputation + " with array length: " + username_split.length);
+                        entry_linear.a[i] = new LinearLayout(MainActivity.this);
+                        username_text.a[i] = new TextView(MainActivity.this);
+                        reputation_text.a[i] = new TextView(MainActivity.this);
+                        place_text.a[i] = new TextView(MainActivity.this);
+                        username_text.a[i].setWidth(400);
+                        username_text.a[i].setTextSize(18);
+                        reputation_text.a[i].setWidth(200);
+                        reputation_text.a[i].setTextSize(18);
+                        place_text.a[i].setWidth(100);
+                        place_text.a[i].setTextSize(18);
+                        username_text.a[i].setText(username);
+                        reputation_text.a[i].setText(reputation);
+                        place_text.a[i].setText(String.valueOf(final_i));
+                        entry_linear.a[i].setLayoutParams(linearLayout.getLayoutParams());
+                        username_text.a[i].setLayoutParams(entry_linear.a[i].getLayoutParams());
+                        reputation_text.a[i].setLayoutParams(entry_linear.a[i].getLayoutParams());
+                        place_text.a[i].setLayoutParams(entry_linear.a[i].getLayoutParams());
+                        entry_linear.a[i].addView(place_text.a[i]);
+                        entry_linear.a[i].addView(username_text.a[i]);
+                        entry_linear.a[i].addView(reputation_text.a[i]);
+                        linearLayout.addView(entry_linear.a[i]);
+                        builder.show();
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "Не удалось запросить информацию о рейтинге", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }));
+        Log.d(tag, "Dialog created and returned");
+        return builder;
+    }
+
+    @NonNull
+    public Dialog CreateAccInfDialog() {
+        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+        final View view = inflater.inflate(R.layout.popup_window_account_information, null);
+        final TextView popup_username = view.findViewById(R.id.popup_username);
+        final TextView popup_username_status = view.findViewById(R.id.popup_status);
+        final TextView popup_rep = view.findViewById(R.id.popup_rep);
+        final TextView popup_coins = view.findViewById(R.id.popup_coins);
+        final AlertDialog builder = new AlertDialog.Builder(MainActivity.this)
+                .setTitle("Информация об аккаунте")
+                .setView(view)
+                .setPositiveButton("Закрыть", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                    }
+                }).create();
+        popup_username.setText(prefs.getString("username", "skipped"));
+        final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
+        executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
+            @Override
+            public void processFinish(List<String> output) {
+                try {
+                    popup_username_status.setText(prefs.getString("status", "Участник закрытого бета-теста"));
+                    popup_rep.setText(output.get(0));
+                    popup_coins.setText(output.get(1));
+                    builder.show();
+                } catch (IndexOutOfBoundsException e) {
+                    Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }));
+        return builder;
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
@@ -953,131 +1213,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int id = item.getItemId();
         prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         if (id == R.id.nav_leaderboard) {
-                executeAsyncTask(new LeaderboardTask(prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new LeaderboardTask.AsyncResponse() {
-                    @Override
-                    public void processFinish(List<String> output) {
-                        try {
-
-                            CoordinatorLayout mainLayout = findViewById(R.id.coordinatorlayout);
-                            LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-                            final View popupView = inflater.inflate(R.layout.activity_leaderboard, null);
-                            popupView.setAnimation(AnimationUtils.loadAnimation(MainActivity.this, R.anim.popup_window_animation));
-                            final PopupWindow popup_window = new PopupWindow(popupView);
-                            popup_window.setWidth(FrameLayout.LayoutParams.WRAP_CONTENT);
-                            popup_window.setHeight(FrameLayout.LayoutParams.WRAP_CONTENT);
-                            popup_window.setFocusable(true);
-                            popup_window.setBackgroundDrawable(new BitmapDrawable());
-                            popup_window.setOutsideTouchable(false);
-                            popup_window.showAtLocation(mainLayout, Gravity.CENTER, 0 , 0);
-                            LinearLayout linearLayout = popupView.findViewById(R.id.leaderboard_scroll);
-
-                            final Button popup_leaderboard_ok = popupView.findViewById(R.id.popup_leaderboard_ok);
-                            popup_leaderboard_ok.setOnClickListener(new View.OnClickListener() {
-                                @SuppressLint("ShowToast")
-                                @Override
-                                public void onClick(View view) {
-                                    popup_window.setAnimationStyle(R.anim.popup_window_animation);
-                                    popup_window.dismiss();
-                                }
-                            });
-
-                            String username;
-                            String reputation;
-                            String[] username_split = output.get(0).split("\\n+");
-                            String[] reputation_split = output.get(1).split("\\n+");
-                            final LeaderboardTask.GenSet<LinearLayout> entry_linear = new LeaderboardTask.GenSet<>(LinearLayout.class, username_split.length);
-                            final LeaderboardTask.GenSet<TextView> username_text = new LeaderboardTask.GenSet<>(TextView.class, username_split.length);
-                            final LeaderboardTask.GenSet<TextView> reputation_text = new LeaderboardTask.GenSet<>(TextView.class, username_split.length);
-                            final LeaderboardTask.GenSet<TextView> place_text = new LeaderboardTask.GenSet<>(TextView.class, username_split.length);
-                            for (int i = 0; i < username_split.length; i++) {
-                                username = username_split[i];
-                                reputation = reputation_split[i];
-                                final int final_i = i + 1;
-                                Log.d(tag, "Split leaderboard data info: " + username + " " + reputation + " with array length: " + username_split.length);
-                                entry_linear.a[i] = new LinearLayout(MainActivity.this);
-                                username_text.a[i] = new TextView(MainActivity.this);
-                                reputation_text.a[i] = new TextView(MainActivity.this);
-                                place_text.a[i] = new TextView(MainActivity.this);
-                                username_text.a[i].setWidth(400);
-                                username_text.a[i].setTextSize(25);
-                                reputation_text.a[i].setWidth(200);
-                                reputation_text.a[i].setTextSize(25);
-                                place_text.a[i].setWidth(100);
-                                place_text.a[i].setTextSize(25);
-                                username_text.a[i].setText(username);
-                                reputation_text.a[i].setText(reputation);
-                                place_text.a[i].setText(String.valueOf(final_i));
-                                entry_linear.a[i].setLayoutParams(linearLayout.getLayoutParams());
-                                username_text.a[i].setLayoutParams(entry_linear.a[i].getLayoutParams());
-                                reputation_text.a[i].setLayoutParams(entry_linear.a[i].getLayoutParams());
-                                place_text.a[i].setLayoutParams(entry_linear.a[i].getLayoutParams());
-                                linearLayout.addView(entry_linear.a[i]);
-                                entry_linear.a[i].addView(place_text.a[i]);
-                                entry_linear.a[i].addView(username_text.a[i]);
-                                entry_linear.a[i].addView(reputation_text.a[i]);
-                            }
-                        } catch (IndexOutOfBoundsException e) {
-                            Toast.makeText(MainActivity.this, "Не удалось запросить информацию о рейтинге", Toast.LENGTH_SHORT).show();
-                        }
-                    }}));
-        } else if (id == R.id.nav_account)
-        {
-            if(item.getTitle().equals("Зарегистрироваться")) {
+            CreateLeaderBoardDialog();
+        } else if (id == R.id.nav_account) {
+            if (item.getTitle().equals("Зарегистрироваться")) {
                 final int REQUEST_SIGNUP = 0;
                 Intent intent = new Intent(getApplicationContext(), SignupActivity.class);
                 startActivityForResult(intent, REQUEST_SIGNUP);
-                if(!prefs.getString("username", "skipped").equals("skipped"))
-                {
+                if (!prefs.getString("username", "skipped").equals("skipped")) {
                     item.setTitle("Информация об аккаунте");
                 }
-            }
-            else
-            {
-                CoordinatorLayout mainLayout = findViewById(R.id.coordinatorlayout);
-                LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-                final View popupView = inflater.inflate(R.layout.popup_window_account_information, null);
-                popupView.setAnimation(AnimationUtils.loadAnimation(this, R.anim.popup_window_animation));
-                final PopupWindow popup_window = new PopupWindow(popupView);
-                popup_window.setWidth(FrameLayout.LayoutParams.WRAP_CONTENT);
-                popup_window.setHeight(FrameLayout.LayoutParams.WRAP_CONTENT);
-                popup_window.setFocusable(true);
-                popup_window.setBackgroundDrawable(new BitmapDrawable());
-                popup_window.setOutsideTouchable(false);
-                popup_window.showAtLocation(mainLayout, Gravity.CENTER, 0 , 0);
-
-                final TextView popup_username = popupView.findViewById(R.id.popup_username);
-                final TextView popup_username_status = popupView.findViewById(R.id.popup_status);
-                final TextView popup_rep = popupView.findViewById(R.id.popup_rep);
-                final TextView popup_coins = popupView.findViewById(R.id.popup_coins);
-
-                popup_username.setText(prefs.getString("username", "skipped"));
-
-                final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
-                executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
-                    @Override
-                    public void processFinish(List<String> output) {
-                        try {
-                            popup_username_status.setText(prefs.getString("status", "Участник закрытого бета-теста"));
-                            popup_rep.setText(output.get(0));
-                            popup_coins.setText(output.get(1));
-                        }
-                        catch (IndexOutOfBoundsException e)
-                        {
-                            Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                }));
-
-                final Button popup_ok_button = popupView.findViewById(R.id.popup_account_ok);
-                prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-                popup_ok_button.setOnClickListener(new View.OnClickListener() {
-                    @SuppressLint("ShowToast")
-                    @Override
-                    public void onClick(View view) {
-                        popup_window.setAnimationStyle(R.anim.popup_window_animation);
-                        popup_window.dismiss();
-                    }
-                });
+            } else {
+                CreateAccInfDialog();
             }
         }
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);

@@ -6,7 +6,8 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_leaderboard"
-            android:icon="?android:attr/actionModeFindDrawable"
+            android:icon="@drawable/ic_assessment_black_48px"
+            android:textAppearance="@android:style/TextAppearance.Material.Medium"
             android:title="Рейтинг" />
     </group>
 
@@ -14,7 +15,8 @@
         <menu>
             <item
                 android:id="@+id/nav_account"
-                android:icon="?android:attr/actionModePasteDrawable"
+                android:icon="@drawable/ic_account_box_black_48px"
+                android:textAppearance="@android:style/TextAppearance.Material.Medium"
                 android:title="Зарегистрироваться" />
         </menu>
     </item>

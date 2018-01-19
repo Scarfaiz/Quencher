@@ -20,10 +20,14 @@ public class GetUrlContentTask extends AsyncTask<String, Void, List<XMLParser.En
     private SharedPreferences prefs;
     private AsyncResponse delegate = null;
     private String url;
+    public String tag;
+    public String subtag;
 
 
-    public GetUrlContentTask(SharedPreferences prefs, String url, AsyncResponse delegate) {
+    public GetUrlContentTask(SharedPreferences prefs, String url, String tag, String subtag, AsyncResponse delegate) {
         this.prefs = prefs;
+        this.tag = tag;
+        this.subtag = subtag;
         this.delegate = delegate;
         this.url = url;
     }
@@ -49,7 +53,7 @@ public class GetUrlContentTask extends AsyncTask<String, Void, List<XMLParser.En
     private List<XMLParser.Entry> loadXmlFromNetwork(String urlString) throws XmlPullParserException, IOException {
         InputStream stream = null;
         // Instantiate the parser
-        XMLParser stackOverflowXmlParser = new XMLParser();
+        XMLParser stackOverflowXmlParser = new XMLParser(tag, subtag);
         List<XMLParser.Entry> entries = null;
 
         //StringBuilder htmlString = new StringBuilder();

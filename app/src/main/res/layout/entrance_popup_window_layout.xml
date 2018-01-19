@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/popup_custom_border"
     android:layout_marginEnd="16dp"
     android:layout_marginStart="16dp"
     android:layout_marginTop="16dp"
@@ -16,7 +15,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Вы получили 5 бутылок и 1 крышку за вход в приложение!"
-        android:textColor="@android:color/black"
+        android:textColor="@color/colorPrimaryDark"
         android:textSize="24sp"
         android:layout_marginEnd="16dp"
         android:layout_marginStart="16dp"
@@ -27,21 +26,10 @@
         android:id="@+id/popup_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@android:color/black"
+        android:textColor="@color/colorPrimaryDark"
         android:textSize="20sp"
         android:layout_marginEnd="16dp"
         android:layout_marginStart="16dp"
         android:text="Награда дается каждый день, не пропустите следующую!" />
-
-
-    <Button
-        android:id="@+id/popup_entrance_ok"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Ок"
-        android:background="@color/colorPrimaryDark"
-        android:layout_gravity="bottom|end"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp" />
 
 </LinearLayout>

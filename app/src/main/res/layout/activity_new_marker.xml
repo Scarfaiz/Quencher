@@ -18,18 +18,16 @@
         app:navigationIcon="?attr/homeAsUpIndicator">
 
     <ImageButton
-        android:id="@+id/upButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="uphandler"
-        android:src="@android:drawable/ic_menu_send"
+        android:src="@drawable/ic_send_white_48px"
         android:layout_gravity="end"
         android:background="@android:color/transparent"/>
 
     </android.support.v7.widget.Toolbar>
 
         <TextView
-            android:id="@+id/marker_name_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Название*"
@@ -47,7 +45,6 @@
             android:paddingLeft="15dp"/>
 
     <TextView
-        android:id="@+id/marker_address_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Адрес*"
@@ -65,7 +62,6 @@
         android:paddingLeft="15dp"/>
 
     <TextView
-        android:id="@+id/marker_open_hours_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Часы продажи"
@@ -81,7 +77,6 @@
         android:entries="@array/marker_o_h_spinner_items"/>
 
     <TextView
-        android:id="@+id/marker_range_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Ассортимент"
@@ -97,7 +92,6 @@
         android:entries="@array/marker_range_spinner_items"/>
 
     <TextView
-        android:id="@+id/marker_comments_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Комментарии"

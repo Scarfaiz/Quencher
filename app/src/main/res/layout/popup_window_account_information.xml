@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@drawable/popup_custom_border"
     android:layout_marginEnd="16dp"
     android:layout_marginStart="16dp"
     android:layout_marginTop="16dp"
@@ -15,9 +13,9 @@
         android:id="@+id/popup_username"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="TextView"
-        android:textColor="@android:color/black"
-        android:textSize="24sp"
+        android:text="Загрузка..."
+        android:textColor="@color/colorPrimaryDark"
+        android:textAppearance="@android:style/TextAppearance.Material.Medium"
         android:layout_marginEnd="16dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
@@ -28,8 +26,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
+        android:textColor="@color/colorPrimaryDark"
         android:layout_marginStart="16dp"
-        android:text="Алкаш" />
+        android:textAppearance="@android:style/TextAppearance.Material.Medium"
+        android:text="Загрузка..." />
 
     <LinearLayout
         android:layout_width="350dp"
@@ -41,22 +41,20 @@
         android:layout_marginBottom="16dp">
 
         <TextView
-            android:id="@+id/textView4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Бутылки"
-            android:textColor="@android:color/black"
-            android:textSize="18sp" />
+            android:textColor="@color/colorPrimaryDark"
+            android:textAppearance="@android:style/TextAppearance.Material.Medium" />
 
         <TextView
-            android:id="@+id/textView5"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Крышки"
-            android:textColor="@android:color/black"
-            android:textSize="18sp"
+            android:textColor="@color/colorPrimaryDark"
+            android:textAppearance="@android:style/TextAppearance.Material.Medium"
             android:layout_gravity="end"/>
     </LinearLayout>
 
@@ -74,28 +72,19 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="TextView"
-            android:textColor="@android:color/black"
-            android:textSize="30sp" />
+            android:text="Загрузка..."
+            android:textColor="@color/colorPrimaryDark"
+            android:textAppearance="@android:style/TextAppearance.Material.Medium" />
 
         <TextView
             android:id="@+id/popup_coins"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="TextView"
-            android:textColor="@android:color/black"
-            android:textSize="30sp"
+            android:text="Загрузка..."
+            android:textColor="@color/colorPrimaryDark"
+            android:textAppearance="@android:style/TextAppearance.Material.Medium"
             android:layout_gravity="end"/>
     </LinearLayout>
-
-    <Button
-        android:id="@+id/popup_account_ok"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Ок"
-        android:background="@color/colorPrimaryDark"
-        android:layout_gravity="end"
-        android:layout_marginBottom="16dp" />
 
 </LinearLayout>

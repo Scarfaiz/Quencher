@@ -21,8 +21,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning">
+        <provider android:name=".MySuggestionProvider"
+            android:authorities="com.neatherbench.MySuggestionProvider" />
         <activity
-            android:name="com.neatherbench.quencher.MainActivity"
+            android:name=".MainActivity"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -31,26 +33,39 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.neatherbench.quencher.NewMarkerActivity"
+            android:name=".NewMarkerActivity"
             android:screenOrientation="portrait" />
         <activity
-            android:name="com.neatherbench.quencher.LoginActivity"
+            android:name=".LoginActivity"
             android:label="Вход в аккаунт"
-            android:screenOrientation="portrait"
-            android:parentActivityName="com.neatherbench.quencher.MainActivity">
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.neatherbench.quencher.MainActivity" />
         </activity>
         <activity
-            android:name="com.neatherbench.quencher.SignupActivity"
+            android:name=".SignupActivity"
             android:label="Регистрация"
-            android:screenOrientation="portrait"
-            android:parentActivityName="com.neatherbench.quencher.MainActivity">
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.neatherbench.quencher.MainActivity" />
         </activity>
+        <!-- This meta-data tag is required to use Google Play Services. -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+        <activity
+            android:name=".AdMobActivity"
+            android:parentActivityName=".MainActivity"
+            android:label="@string/title_activity_ad_mob"></activity> <!-- Include the AdActivity configChanges and theme. -->
+        <activity
+            android:name="com.google.android.gms.ads.AdActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"
+            android:theme="@android:style/Theme.Translucent" />
     </application>
 
 </manifest>

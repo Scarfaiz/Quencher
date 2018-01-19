@@ -62,7 +62,8 @@
         android:layout_width="wrap_content"
         app:layout_anchor="@id/bottom_sheet"
         app:layout_anchorGravity="top|right|end"
-        android:src="@android:drawable/ic_menu_add"
+        android:src="@drawable/ic_add_black_48px"
+        android:background="@color/colorAccent"
         android:layout_margin="@dimen/fab_margin"
         app:layout_behavior="@string/ScrollAwareFABBehavior"
         android:clickable="true"/>
@@ -72,7 +73,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@android:color/transparent"
-        android:theme="@style/AppTheme.AppBarOverlay"
+        android:theme="@style/AppTheme"
         android:tag="modal-appbar"
         app:layout_behavior="@string/MergedAppBarLayoutBehavior">
         <FrameLayout
@@ -90,7 +91,7 @@
                 android:layout_width="match_parent"
                 android:background="@android:color/transparent"
                 android:layout_height="?attr/actionBarSize"
-                app:popupTheme="@style/AppTheme.PopupOverlay"
+                app:popupTheme="@style/AppTheme"
                 app:title="@string/key_binding_default_toolbar_name"
                 app:navigationIcon="@drawable/ic_close_white_24dp"/>
         </FrameLayout>
@@ -103,14 +104,14 @@
         android:layout_gravity="top|left"
         android:layout_marginBottom="96dp"
         android:layout_marginRight="16dp"
+        android:background="@color/colorAccent"
         android:clickable="true"
-        app:backgroundTint="?android:attr/colorBackground"
         app:fabSize="normal"
         app:layout_anchor="@+id/bottom_sheet"
         app:layout_anchorGravity="center_vertical|right"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:srcCompat="@drawable/ic_menu_mylocation"
+        app:srcCompat="@drawable/ic_my_location_black_48px"
         tools:layout_constraintBottom_creator="1"
         tools:layout_constraintRight_creator="1" />
 
@@ -121,14 +122,14 @@
         android:layout_gravity="top|right"
         android:layout_marginBottom="96dp"
         android:layout_marginLeft="16dp"
+        android:background="@color/colorAccent"
         android:clickable="true"
-        app:backgroundTint="?android:attr/colorBackground"
         app:fabSize="normal"
         app:layout_anchor="@+id/bottom_sheet"
         app:layout_anchorGravity="center_vertical|left"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:srcCompat="@android:drawable/ic_search_category_default"
+        app:srcCompat="@drawable/ic_search_black_48px"
         tools:layout_constraintBottom_creator="1"
         tools:layout_constraintRight_creator="1" />
 

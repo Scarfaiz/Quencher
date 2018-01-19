@@ -91,7 +91,6 @@
             android:text="Пропустить" />
 
         <TextView
-            android:id="@+id/signup_text_skip"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
