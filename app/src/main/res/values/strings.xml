@@ -7,6 +7,18 @@
 
     <string name="mystore_password">a7ewOPm6</string>
 
+    <string name="tutorial_1_text1">    Quencher - это развивающийся проект по поиску мест по продаже алкоголя. Наша база данных обновляется каждый день благодаря новым пользователям.</string>
+    <string name="tutorial_1_text2">    Приложение все еще находится в раннем доступе, поэтому некоторые функции приложения могут работать некорректно. </string>
+    <string name="tutorial_1_text3">    Также база данных мест пока небольшая, поэтому, скорее всего, Вы не найдете поблизости доступных мест. Однако, Вы всегда можете пополнить базу данных своим знанием местности!</string>
+
+
+    <string name="tutorial_2_text1">    Для добавления нового места удерживайте на нужной точке на карте. Для того, чтобы получить информацию об уже известном месте, нажмите на маркер. </string>
+    <string name="tutorial_2_text2">    Новые места будут добавляться сразу, однако для того, чтобы удостовериться в корректности введенной информации, потребуется подтверждение других пользователей. </string>
+    <string name="tutorial_2_text3">    Все зарегистрированные пользователи имеют рейтинг в приложении - количество собранных бутылок, а также крышки - с помощью них можно добавлять новые места.</string>
+
+    <string name="tutorial_3_text1">    Для работы приложения потребуется разрешение на использование геопозиции.</string>
+    <string name="tutorial_3_text2">    Также для получения полного функционала приложения стоит зарегистрировать новый аккаунт или войти в старый. </string>
+
     <string name="key_binding_default_toolbar_name">Modal-Toolbar-Title</string>
 
     <string-array name="marker_range_spinner_items">
@@ -28,5 +40,8 @@
         For more information, see https://support.google.com/admob/answer/3052638
     <!- -->
     <string name="interstitial_ad_unit_id">ca-app-pub-3940256099942544/1033173712</string>
+    <string name="title_activity_tutorial">TutorialActivity</string>
+    <string name="action_settings">Settings</string>
+    <string name="section_format">Hello World from section: %1$d</string>
 
 </resources>

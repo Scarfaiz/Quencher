@@ -169,7 +169,7 @@ public class ScrollingAppBarLayoutBehavior extends AppBarLayout.ScrollingViewBeh
 
     private void setStatusBarBackgroundVisible(boolean visible){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
-            if(visible){
+            /*if(visible){
                 Window window = ((Activity)mContext).getWindow();
                 window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
                 window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
@@ -178,8 +178,8 @@ public class ScrollingAppBarLayoutBehavior extends AppBarLayout.ScrollingViewBeh
                 Window window = ((Activity)mContext).getWindow();
                 window.clearFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
                 window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-                window.setStatusBarColor(ContextCompat.getColor(mContext,android.R.color.transparent));
-            }
+                window.setStatusBarColor(ContextCompat.getColor(mContext,R.color.colorPrimaryDark));
+            }*/
         }
     }
 

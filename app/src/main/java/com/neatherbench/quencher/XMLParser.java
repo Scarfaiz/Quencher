@@ -88,7 +88,6 @@ public class XMLParser {
                 continue;
             }
             String name = parser.getName();
-            Log.d("LogDebug", name);
             if (name.equals("state")) {
                 city = readCity(parser);
             } else if (name.equals("road")) {

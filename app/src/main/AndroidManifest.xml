@@ -16,13 +16,18 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
+        android:hardwareAccelerated="false"
+        android:largeHeap="true"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning">
-        <provider android:name=".MySuggestionProvider"
+        <provider
+            android:name=".MySuggestionProvider"
             android:authorities="com.neatherbench.MySuggestionProvider" />
+
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait">
@@ -60,12 +65,24 @@
 
         <activity
             android:name=".AdMobActivity"
-            android:parentActivityName=".MainActivity"
-            android:label="@string/title_activity_ad_mob"></activity> <!-- Include the AdActivity configChanges and theme. -->
+            android:label="@string/title_activity_ad_mob"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".MainActivity" /> <!-- Include the AdActivity configChanges and theme. -->
         <activity
             android:name="com.google.android.gms.ads.AdActivity"
+            android:screenOrientation="portrait"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"
             android:theme="@android:style/Theme.Translucent" />
+        <activity
+            android:name=".TutorialActivity"
+            android:label="@string/title_activity_tutorial"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.neatherbench.quencher.MainActivity" />
+        </activity>
     </application>
 
 </manifest>

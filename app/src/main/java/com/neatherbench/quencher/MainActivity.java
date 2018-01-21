@@ -12,9 +12,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.MatrixCursor;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.location.LocationProvider;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -103,21 +105,42 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             // TODO Auto-generated method stub
             if (!geodata_updated) {
                 GeoPoint locGeoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-                mapController.setCenter(locGeoPoint);
+                mapController.animateTo(locGeoPoint);
                 mapController.zoomTo(17);
                 my_location_marker.setPosition(locGeoPoint);
-                SearchForMarkersFunc();
-                Log.d("LogDebug", "My location marker moved to: " + String.valueOf(locGeoPoint.getLatitude() + ", " + String.valueOf(locGeoPoint.getLongitude())));
                 prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                SearchForMarkersFunc(String.valueOf(location.getLatitude()), String.valueOf(location.getLongitude()));
+                Log.d("LogDebug", "My location marker moved to: " + String.valueOf(locGeoPoint.getLatitude() + ", " + String.valueOf(locGeoPoint.getLongitude())));
                 SharedPreferences.Editor editor = prefs.edit();
-                float Latitude = (float) location.getLatitude();
-                editor.putFloat("Latitude", Latitude);
-                float Longitude = (float) location.getLongitude();
-                editor.putFloat("Longitude", Longitude);
-                Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf(prefs.getFloat("Longitude", Longitude)));
+                String Latitude = String.valueOf(location.getLatitude());
+                editor.putString("Latitude", Latitude);
+                String Longitude = String.valueOf(location.getLongitude());
+                editor.putString("Longitude", Longitude);
                 editor.apply();
+                Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getString("Latitude", Latitude)) + "  " + String.valueOf(prefs.getString("Longitude", Longitude)));
                 geodata_updated = true;
+                map.invalidate();
                 dialog.dismiss();
+                url = "https://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + location.getLatitude() + "&lon=" + location.getLongitude() + "&zoom=18&addressdetails=1";
+                Log.d(tag, "Sending request to: " + url);
+                executeAsyncTask(new GetUrlContentTask(prefs, url, "reversegeocode", "addressparts", new GetUrlContentTask.AsyncResponse() {
+
+                    @SuppressLint("SetTextI18n")
+                    @Override
+                    public void processFinish(List<XMLParser.Entry> output) {
+                        try {
+                            if (output.get(0).city != null) {
+                                city = output.get(0).city;
+                                SharedPreferences.Editor editor = prefs.edit();
+                                editor.putString("city", String.valueOf(output.get(0).city));
+                                editor.apply();
+                            }
+                        } catch (Exception e) {
+                            bottomSheetTextView.setText("Невозможно загрузить адрес");
+                            bottomSheetTextViewSubtitle.setText(output.toString());
+                        }
+                    }
+                }));
             } else {
                 GeoPoint locGeoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
                 my_location_marker.setPosition(locGeoPoint);
@@ -126,21 +149,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         @Override
         public void onProviderDisabled(String provider) {
-            // TODO Auto-generated method stub
+            if (provider.equals(LocationManager.GPS_PROVIDER)) {
+
+            }
 
         }
 
         @Override
         public void onProviderEnabled(String provider) {
-            // TODO Auto-generated method stub
-
-
+            if (provider.equals(LocationManager.GPS_PROVIDER)) {
+                Log.d(tag, "provider enabled");
+            }
         }
 
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {
-            // TODO Auto-generated method stub
+            if (provider.equals(LocationManager.GPS_PROVIDER)) {
+                if (status == LocationProvider.OUT_OF_SERVICE) {
 
+                } else {
+
+                }
+            }
         }
 
     };
@@ -154,17 +184,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.remove("lastmarker");
-        editor.apply();
         setContentView(R.layout.activity_main);
-        dialog=new ProgressDialog(MainActivity.this);
-        dialog.setMessage("Собираем стеклотару...");
-        dialog.setCancelable(false);
-        dialog.setInverseBackgroundForced(false);
-        dialog.show();
         Context ctx = getApplicationContext();
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        if (!prefs.contains("tutorial")) {
+            startActivity(new Intent(MainActivity.this, TutorialActivity.class));
+        }
         Configuration.getInstance().load(ctx, prefs);
         Configuration.getInstance().setUserAgentValue("CB");
         permsRequestCode = 1;
@@ -174,22 +199,41 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         map.setMultiTouchControls(true);
         mapController = map.getController();
         mapController.setZoom(15);
-        GeoPoint startPoint = new GeoPoint(prefs.getFloat("Latitude", 59.93863f), prefs.getFloat("Longitude", 30.31413f));
-        Log.d(tag, "Loaded Geoposition: " + String.valueOf(prefs.getFloat("Latitude", 59.93863f)) + "  " + String.valueOf(prefs.getFloat("Longitude", 30.31413f)));
-        mapController.animateTo(startPoint);
+        GeoPoint startPoint = new GeoPoint(Double.valueOf(prefs.getString("Latitude", "59.93863d")), Double.valueOf(prefs.getString("Longitude", "30.31413d")));
+        Log.d(tag, "Loaded Geoposition: " + prefs.getString("Latitude", "59.93863d") + "  " + prefs.getString("Longitude", "30.31413d"));
+        mapController.setCenter(startPoint);
         my_location_marker = new Marker(map);
-        my_location_marker.setPosition(startPoint);
-        Log.d("LogDebug", "My location marker moved to: " + String.valueOf(startPoint.getLatitude() + ", " + String.valueOf(startPoint.getLongitude())));
+        //my_location_marker.setPosition(startPoint);
+        //Log.d("LogDebug", "My location marker moved to: " + String.valueOf(startPoint.getLatitude() + ", " + String.valueOf(startPoint.getLongitude())));
         my_location_marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
         my_location_marker.setIcon(getResources().getDrawable(R.drawable.ic_person_pin_circle_black_48px));
         map.getOverlays().add(my_location_marker);
         geodata_updated = false;
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        assert locationManager != null;
-        locationManager.removeUpdates(myLocationListener);
-        if (!prefs.contains("username")) {
-            startActivity(new Intent(MainActivity.this, LoginActivity.class));
-        } else if (!prefs.getString("username", "skipped").equals("skipped")) {
+        int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+        if (permission == PermissionChecker.PERMISSION_GRANTED) {
+            Criteria criteria = new Criteria();
+            criteria.setAccuracy(Criteria.ACCURACY_FINE);
+            criteria.setPowerRequirement(Criteria.POWER_HIGH);
+            criteria.setAltitudeRequired(false);
+            criteria.setSpeedRequired(false);
+            criteria.setCostAllowed(true);
+            criteria.setBearingRequired(false);
+            criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
+            criteria.setVerticalAccuracy(Criteria.ACCURACY_HIGH);
+            Integer gpsFreqInMillis = 1000;
+            Integer gpsFreqInDistance = 1;
+            locationManager.requestLocationUpdates(gpsFreqInMillis, gpsFreqInDistance, criteria, myLocationListener, null);
+        }
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.remove("lastmarker");
+        editor.apply();
+        dialog=new ProgressDialog(MainActivity.this);
+        dialog.setMessage("Собираем стеклотару...");
+        dialog.setCancelable(false);
+        dialog.setInverseBackgroundForced(false);
+        dialog.show();
+            if (!prefs.getString("username", "skipped").equals("skipped")) {
             NavigationView navigationView = findViewById(R.id.nav_view);
             Menu menu = navigationView.getMenu();
             MenuItem nav_account = menu.findItem(R.id.nav_account);
@@ -224,7 +268,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         final Toolbar toolbar = findViewById(R.id.toolbar);
         final AppBarLayout appbar = findViewById(R.id.appbar);
-        setSupportActionBar(toolbar);
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -248,70 +291,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             public void onClick(View view) {
                 int permission = PermissionChecker.checkSelfPermission(MainActivity.this.getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
                 if (permission == PermissionChecker.PERMISSION_GRANTED) {
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
-                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
+                    Criteria criteria = new Criteria();
+                    criteria.setAccuracy(Criteria.ACCURACY_FINE);
+                    criteria.setPowerRequirement(Criteria.POWER_HIGH);
+                    criteria.setAltitudeRequired(false);
+                    criteria.setSpeedRequired(false);
+                    criteria.setCostAllowed(true);
+                    criteria.setBearingRequired(false);
+                    criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
+                    criteria.setVerticalAccuracy(Criteria.ACCURACY_HIGH);
+                    Integer gpsFreqInMillis = 1000;
+                    Integer gpsFreqInDistance = 1;
+                    locationManager.requestLocationUpdates(gpsFreqInMillis, gpsFreqInDistance, criteria, myLocationListener, null);
                     Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    int MIN_TIME_BW_UPDATES = 10000;
-                    int MIN_DISTANCE_CHANGE_FOR_UPDATES = 10000;
-                    try {
-                        locationManager = (LocationManager) getApplicationContext()
-                                .getSystemService(LOCATION_SERVICE);
-
-                        boolean isGPSEnabled = locationManager
-                                .isProviderEnabled(LocationManager.GPS_PROVIDER);
-
-                        boolean isPassiveEnabled = locationManager
-                                .isProviderEnabled(LocationManager.PASSIVE_PROVIDER);
-
-                        boolean isNetworkEnabled = locationManager
-                                .isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-
-                        if (isGPSEnabled || isNetworkEnabled || isPassiveEnabled) {
-                            // if GPS Enabled get lat/long using GPS Services
-                            if (isGPSEnabled) {
-                                locationManager.requestLocationUpdates(
-                                        LocationManager.GPS_PROVIDER,
-                                        MIN_TIME_BW_UPDATES,
-                                        MIN_DISTANCE_CHANGE_FOR_UPDATES, myLocationListener);
-                                Log.d("GPS", "GPS Enabled");
-                                if (locationManager != null) {
-                                    location = locationManager
-                                            .getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                                }
-                            }
-                            if (isPassiveEnabled) {
-                                locationManager.requestLocationUpdates(
-                                        LocationManager.PASSIVE_PROVIDER,
-                                        MIN_TIME_BW_UPDATES,
-                                        MIN_DISTANCE_CHANGE_FOR_UPDATES, myLocationListener);
-                                Log.d("Network", "Network Enabled");
-                                if (locationManager != null) {
-                                    location = locationManager
-                                            .getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
-                                }
-                            }
-
-                            if (isNetworkEnabled) {
-                                locationManager.requestLocationUpdates(
-                                        LocationManager.NETWORK_PROVIDER,
-                                        MIN_TIME_BW_UPDATES,
-                                        MIN_DISTANCE_CHANGE_FOR_UPDATES, myLocationListener);
-                                Log.d("Network", "Network Enabled");
-                                if (locationManager != null) {
-                                    location = locationManager
-                                            .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                                }
-                            }
                             updateLoc(location);
                             if (mapController.zoomIn())
                                 mapController.zoomOut();
-                        } else {
-                            Toast.makeText(MainActivity.this, "Не удалось загрузить информацию о местоположении", Toast.LENGTH_LONG).show();
-                        }
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
                 } else {
                     GetLocPermission();
                 }
@@ -329,7 +324,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         SearchButton.setOnClickListener(new View.OnClickListener() {
                                             @Override
                                             public void onClick(View view) {
-                                                SearchForMarkersFunc();
+                                                SearchForMarkersFunc(String.valueOf(map.getMapCenter().getLatitude()), String.valueOf(map.getMapCenter().getLongitude()));
                                             }
                                         }
         );
@@ -586,7 +581,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         final CoordinatorLayout coordinatorLayout = findViewById(R.id.coordinatorlayout);
         View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
         final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
-        final FloatingActionButton newMarkerButton = coordinatorLayout.findViewById(R.id.new_marker_button);
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         if (prefs.contains("lastmarker"))
             map.getOverlays().remove(prefs.getInt("lastmarker", 0));
@@ -691,7 +685,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         });
     }
 
-    private void SearchForMarkersFunc() {
+    private void SearchForMarkersFunc(String lat, String lon) {
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         final CoordinatorLayout coordinatorLayout = findViewById(R.id.coordinatorlayout);
         View bottomSheet = coordinatorLayout.findViewById(R.id.bottom_sheet);
@@ -702,7 +696,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         bottom_sheet_button_desc = findViewById(R.id.bottom_sheet_button_desc);
         final ProgressBar bottom_sheet_pb = new ProgressBar(MainActivity.this);
         final BottomSheetBehaviorGoogleMapsLike behavior = BottomSheetBehaviorGoogleMapsLike.from(bottomSheet);
-        executeAsyncTask(new SearchForMarkersTask(String.valueOf(prefs.getFloat("Latitude", 59.93863f)), String.valueOf(prefs.getFloat("Longitude", 30.31413f)), prefs.getString("city", "Санкт-Петербург"), MainActivity.this.getApplicationContext(),
+        executeAsyncTask(new SearchForMarkersTask(lat, lon, prefs.getString("city", "Санкт-Петербург"), MainActivity.this.getApplicationContext(),
                 new SearchForMarkersTask.AsyncResponse() {
                     @Override
                     public void processFinish(List<String> output) {
@@ -761,8 +755,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                         final Button dismiss = new Button(MainActivity.this);
                                                         confirm.setText("Подтвердить место");
                                                         dismiss.setText("Пожаловаться");
-                                                        confirm.setBackground(getResources().getDrawable(R.color.colorPrimaryDark));
-                                                        dismiss.setBackground(getResources().getDrawable(R.color.colorPrimaryDark));
+                                                        confirm.setBackground(getResources().getDrawable(R.drawable.rounded_button));
+                                                        dismiss.setBackground(getResources().getDrawable(R.drawable.rounded_button));
                                                         confirm.setLayoutParams(bottom_sheet_rel.getLayoutParams());
                                                         dismiss.setLayoutParams(bottom_sheet_rel.getLayoutParams());
                                                         bottom_sheet_rel.addView(confirm);
@@ -964,42 +958,28 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void updateLoc(Location loc) {
-        int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
-        if (permission == PermissionChecker.PERMISSION_GRANTED) {
-            GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
-            mapController.animateTo(locGeoPoint);
-            my_location_marker.setPosition(locGeoPoint);
-            Log.d("LogDebug", "My location marker moved to: " + String.valueOf(locGeoPoint.getLatitude() + ", " + String.valueOf(locGeoPoint.getLongitude())));
-            prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-            SharedPreferences.Editor editor = prefs.edit();
-            float Latitude = (float) loc.getLatitude();
-            editor.putFloat("Latitude", Latitude);
-            float Longitude = (float) loc.getLongitude();
-            editor.putFloat("Longitude", Longitude);
-            Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getFloat("Latitude", Latitude)) + "  " + String.valueOf(prefs.getFloat("Longitude", Longitude)));
-            url = "https://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + loc.getLatitude() + "&lon=" + loc.getLongitude() + "&zoom=18&addressdetails=1";
-            Log.d(tag, "Sending request to: " + url);
-            executeAsyncTask(new GetUrlContentTask(prefs, url, "reversegeocode", "addressparts", new GetUrlContentTask.AsyncResponse() {
-
-                @SuppressLint("SetTextI18n")
-                @Override
-                public void processFinish(List<XMLParser.Entry> output) {
-                    try {
-                        if (output.get(0).city != null) {
-                            city = output.get(0).city;
-                            SharedPreferences.Editor editor = prefs.edit();
-                            editor.putString("city", String.valueOf(output.get(0).city));
-                            editor.apply();
-                        }
-                    } catch (Exception e) {
-                        bottomSheetTextView.setText("Невозможно загрузить адрес");
-                        bottomSheetTextViewSubtitle.setText(output.toString());
-                    }
-                }
-            }));
-            editor.apply();
-        } else GetLocPermission();
-
+        try {
+            int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+            if (permission == PermissionChecker.PERMISSION_GRANTED) {
+                GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
+                mapController.animateTo(locGeoPoint);
+                my_location_marker.setPosition(locGeoPoint);
+                Log.d("LogDebug", "My location marker moved to: " + String.valueOf(locGeoPoint.getLatitude() + ", " + String.valueOf(locGeoPoint.getLongitude())));
+                prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                SharedPreferences.Editor editor = prefs.edit();
+                String Latitude = String.valueOf(loc.getLatitude());
+                editor.putString("Latitude", Latitude);
+                String Longitude = String.valueOf(loc.getLongitude());
+                editor.putString("Longitude", Longitude);
+                editor.apply();
+                Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getString("Latitude", Latitude)) + "  " + String.valueOf(prefs.getString("Longitude", Longitude)));
+            } else GetLocPermission();
+        }
+        catch (NullPointerException e)
+        {
+            Log.d(tag, e.getMessage());
+            Toast.makeText(MainActivity.this, "Не удалось загрузить местоположение, проверьте соединение.", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void GetLocPermission() {

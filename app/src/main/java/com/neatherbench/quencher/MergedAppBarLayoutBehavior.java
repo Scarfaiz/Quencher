@@ -319,7 +319,7 @@ public class MergedAppBarLayoutBehavior extends AppBarLayout.ScrollingViewBehavi
 
     private void setStatusBarBackgroundVisible(boolean visible){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
-            if(visible){
+            /*if(visible){
                 Window window = ((Activity)mContext).getWindow();
                 window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
                 window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
@@ -329,7 +329,7 @@ public class MergedAppBarLayoutBehavior extends AppBarLayout.ScrollingViewBehavi
                 window.clearFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
                 window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
                 window.setStatusBarColor(ContextCompat.getColor(mContext,android.R.color.transparent));
-            }
+            }*/
         }
     }
 
