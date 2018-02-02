@@ -11,9 +11,9 @@
         android:id="@+id/marker_layout_toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary"
         android:minHeight="?attr/actionBarSize"
         android:theme="?attr/actionBarTheme"
+        android:background="@color/colorAccent"
         app:title="Добавление нового места"
         app:navigationIcon="?attr/homeAsUpIndicator">
 
@@ -21,7 +21,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="uphandler"
-        android:src="@drawable/ic_send_white_48px"
+        android:src="@drawable/ic_send_white_24px"
         android:layout_gravity="end"
         android:background="@android:color/transparent"/>
 

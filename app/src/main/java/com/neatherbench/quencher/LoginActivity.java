@@ -65,6 +65,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 editor.putString("username", "skipped");
+                editor.putString("tutorial", "passed");
                 editor.apply();
                 Intent intent = new Intent(getApplicationContext(), MainActivity.class);
                 startActivity(intent);
@@ -120,6 +121,7 @@ public class LoginActivity extends AppCompatActivity {
                         else if(output.get(0).equals("1")){
                             editor.putString("username", output.get(1));
                             editor.putString("email", email);
+                            editor.putString("tutorial", "passed");
                             editor.putInt("reputation", Integer.valueOf(output.get(2)));
                             editor.apply();
                             onLoginSuccess();
@@ -142,8 +144,8 @@ public class LoginActivity extends AppCompatActivity {
             if (resultCode == RESULT_OK) {
 
                 // TODO: Implement successful signup logic here
-                // By default we just finish the Activity and log them in automatically
-                this.finish();
+                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                startActivity(intent);
             }
         }
     }

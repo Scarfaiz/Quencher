@@ -30,8 +30,6 @@
                 android:id="@+id/input_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColorHint="@color/colorPrimary"
-                android:textColor="@color/colorPrimary"
                 android:hint="Никнейм"
                 android:inputType="textCapWords" />
         </android.support.design.widget.TextInputLayout>
@@ -45,8 +43,6 @@
             <EditText android:id="@+id/input_email"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColorHint="@color/colorPrimary"
-                android:textColor="@color/colorPrimary"
                 android:inputType="textEmailAddress"
                 android:hint="Email" />
         </android.support.design.widget.TextInputLayout>
@@ -63,8 +59,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Пароль"
-                android:textColorHint="@color/colorPrimary"
-                android:textColor="@color/colorPrimary"
                 android:inputType="textPassword" />
         </android.support.design.widget.TextInputLayout>
 

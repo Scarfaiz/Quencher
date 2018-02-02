@@ -2,14 +2,14 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/colorAccent"
+    android:background="@color/colorPrimary"
     android:orientation="vertical"
     android:paddingBottom="16dp">
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="@dimen/bottom_sheet_peek_height"
-        android:background="@color/colorPrimary"
+        android:background="@color/colorAccent"
         android:paddingBottom="8dp"
         android:paddingEnd="16dp"
         android:paddingStart="16dp"
@@ -25,7 +25,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Информация загружается..."
-                android:textColor="@color/colorAccent"
                 android:textAppearance="@android:style/TextAppearance.Material.Large" />
 
             <TextView
@@ -33,7 +32,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Информация загружается..."
-                android:textColor="@color/colorAccent"
                 android:textAppearance="@android:style/TextAppearance.Material.Small" />
 
         </LinearLayout>
@@ -46,7 +44,6 @@
             android:layout_centerVertical="true"
             android:paddingTop="12dp"
             android:text="Добавить место"
-            android:textColor="@color/colorAccent"
             android:textAppearance="@android:style/TextAppearance.Material.Small" />
 
     </RelativeLayout>
@@ -71,14 +68,14 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="10dp"
         android:layout_marginEnd="16dp"
-        android:background="@color/colorAccent"
+        android:background="@color/colorPrimary"
         android:orientation="vertical">
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="500dp"
-        android:background="@color/colorAccent"
+        android:background="@color/colorPrimary"
         android:orientation="vertical"></LinearLayout>
 
     <!--

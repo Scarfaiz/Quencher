@@ -22,8 +22,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.ViewPropertyAnimator;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
@@ -132,7 +130,7 @@ public class MergedAppBarLayoutBehavior extends AppBarLayout.ScrollingViewBehavi
                 setStatusBarBackgroundVisible(true);
             if(!isTitleVisible())
                 setTitleVisible(true);
-            setFullBackGroundColor(R.color.colorPrimary);
+            setFullBackGroundColor(R.color.colorAccent);
             setPartialBackGroundHeight(0);
         }
         return childMoved;
@@ -144,7 +142,6 @@ public class MergedAppBarLayoutBehavior extends AppBarLayout.ScrollingViewBehavi
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             appBarLayout.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
         }
-
         mToolbar = (Toolbar) appBarLayout.findViewById(R.id.expanded_toolbar);
         mBackground = appBarLayout.findViewById(R.id.background);
         mBackGroundLayoutParams = (FrameLayout.LayoutParams) mBackground.getLayoutParams();

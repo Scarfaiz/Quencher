@@ -10,7 +10,7 @@
         <item name="windowNoTitle">true</item>
         <item name="android:navigationBarColor">@color/colorPrimaryDark</item>
         <item name="android:textColor">@color/colorPrimaryDark</item>
-        <item name="android:colorForeground">@color/colorPrimary</item>
+        <item name="android:colorForeground">@color/colorAccent</item>
         <item name="android:textColorSecondary">@color/colorAccent</item>
         <item name="android:colorBackground">@color/colorPrimary</item>
         <item name="android:textColorPrimaryInverse">@color/colorPrimaryDark</item>

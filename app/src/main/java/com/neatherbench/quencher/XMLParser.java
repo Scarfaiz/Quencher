@@ -1,6 +1,5 @@
 package com.neatherbench.quencher;
 
-import android.util.Log;
 import android.util.Xml;
 
 import org.xmlpull.v1.XmlPullParser;

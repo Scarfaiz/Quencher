@@ -69,6 +69,7 @@ public class SignupActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 editor.putString("username", "skipped");
+                editor.putString("tutorial", "passed");
                 editor.apply();
                 Intent intent = new Intent(getApplicationContext(), MainActivity.class);
                 startActivity(intent);
@@ -133,6 +134,7 @@ public class SignupActivity extends AppCompatActivity {
                         else if(output.equals("6")){
                             editor.putString("username", name);
                             editor.putString("email", email);
+                            editor.putString("tutorial", "passed");
                             editor.putInt("reputation", 0);
                             editor.apply();
                             onSignupSuccess();
@@ -163,7 +165,8 @@ public class SignupActivity extends AppCompatActivity {
         Toast.makeText(getBaseContext(), "Аккаунт успешно создан", Toast.LENGTH_LONG).show();
         _signupButton.setEnabled(true);
         setResult(RESULT_OK, null);
-        finish();
+        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+        startActivity(intent);
     }
 
     public void onSignupFailed(String message) {

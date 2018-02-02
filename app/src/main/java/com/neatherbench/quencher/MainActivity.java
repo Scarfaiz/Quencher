@@ -56,6 +56,15 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.startapp.android.publish.adsCommon.Ad;
+import com.startapp.android.publish.adsCommon.AutoInterstitialPreferences;
+import com.startapp.android.publish.adsCommon.SDKAdPreferences;
+import com.startapp.android.publish.adsCommon.StartAppAd;
+import com.startapp.android.publish.adsCommon.StartAppSDK;
+import com.startapp.android.publish.adsCommon.adListeners.AdEventListener;
+import com.startapp.android.publish.common.b;
+import com.startapp.android.publish.common.model.AdPreferences;
+
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONException;
@@ -74,6 +83,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -119,7 +131,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 editor.apply();
                 Log.d(tag, "Last saved Geoposition: " + String.valueOf(prefs.getString("Latitude", Latitude)) + "  " + String.valueOf(prefs.getString("Longitude", Longitude)));
                 geodata_updated = true;
-                map.invalidate();
+                //map.invalidate();
                 dialog.dismiss();
                 url = "https://nominatim.openstreetmap.org/reverse?email=netherbench@gmail.com&format=xml&lat=" + location.getLatitude() + "&lon=" + location.getLongitude() + "&zoom=18&addressdetails=1";
                 Log.d(tag, "Sending request to: " + url);
@@ -212,6 +224,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
+            locationManager.removeUpdates(myLocationListener);
             Criteria criteria = new Criteria();
             criteria.setAccuracy(Criteria.ACCURACY_FINE);
             criteria.setPowerRequirement(Criteria.POWER_HIGH);
@@ -234,7 +247,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         dialog.setInverseBackgroundForced(false);
         dialog.show();
             if (!prefs.getString("username", "skipped").equals("skipped")) {
-            NavigationView navigationView = findViewById(R.id.nav_view);
+            final NavigationView navigationView = findViewById(R.id.nav_view);
             Menu menu = navigationView.getMenu();
             MenuItem nav_account = menu.findItem(R.id.nav_account);
             nav_account.setTitle("Информация об аккаунте");
@@ -258,14 +271,54 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                 }).create();
                         builder.show();
                     }
+                    final View nav_header = navigationView.getHeaderView(0);
+                    final TextView nav_title = nav_header.findViewById(R.id.nav_title);
+                    final TextView nav_subtitle = nav_header.findViewById(R.id.nav_subtitle);
+                    nav_title.setText(prefs.getString("username", ""));
+                    final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
+                    executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
+                        @Override
+                        public void processFinish(List<String> output) {
+                            try {
+                                SharedPreferences.Editor editor = prefs.edit();
+                                if(Integer.valueOf(output.get(0))<50) {
+                                    nav_subtitle.setText("Новичок");
+                                    editor.putString("status", "Новичок");
+                                    editor.apply();
+                                }
+                                else if(Integer.valueOf(output.get(0))<100){
+                                    nav_subtitle.setText("Ученик");
+                                    editor.putString("status", "Ученик");
+                                    editor.apply();
+                                }
+                                else if(Integer.valueOf(output.get(0))<200){
+                                    nav_subtitle.setText("Адепт");
+                                    editor.putString("status", "Адепт");
+                                    editor.apply();
+                                }
+                                else if(Integer.valueOf(output.get(0))<300){
+                                    nav_subtitle.setText("Эксперт");
+                                    editor.putString("status", "Эксперт");
+                                    editor.apply();
+                                }
+                                else if(Integer.valueOf(output.get(0))<1000){
+                                    nav_subtitle.setText("Мастер");
+                                    editor.putString("status", "Мастер");
+                                    editor.apply();
+                                }
+                                else if(Integer.valueOf(output.get(0))>1000) {
+                                    editor.putString("status", "Легенда");
+                                    editor.apply();
+                                    nav_subtitle.setText("Легенда");
+                                }
+                            } catch (IndexOutOfBoundsException e) {
+                                Toast.makeText(MainActivity.this, "Не удалось загрузить информацию об аккаунте", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    }));
                 }
             }));
-            final View nav_header = navigationView.getHeaderView(0);
-            final TextView nav_title = nav_header.findViewById(R.id.nav_title);
-            final TextView nav_subtitle = nav_header.findViewById(R.id.nav_subtitle);
-            nav_title.setText(prefs.getString("username", "Имя пользователя"));
-            nav_subtitle.setText(prefs.getString("status", "Участник закрытого бета-теста"));
-        }
+            }
         final Toolbar toolbar = findViewById(R.id.toolbar);
         final AppBarLayout appbar = findViewById(R.id.appbar);
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -329,6 +382,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                         }
         );
         final FloatingActionButton newMarkerButton = coordinatorLayout.findViewById(R.id.new_marker_button);
+        newMarkerButton.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         behavior.addBottomSheetCallback(new BottomSheetBehaviorGoogleMapsLike.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
@@ -434,7 +488,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         final SearchView searchBar = findViewById(R.id.search_bar);
         View v = searchBar.findViewById(android.support.v7.appcompat.R.id.search_plate);
-        v.setBackgroundColor(MainActivity.this.getResources().getColor(R.color.colorAccent));
+        v.setBackgroundColor(MainActivity.this.getResources().getColor(R.color.colorPrimary));
         ImageView magImage = searchBar.findViewById(android.support.v7.appcompat.R.id.search_mag_icon);
         magImage.setLayoutParams(new LinearLayout.LayoutParams(0, 0));
         searchBar.setQueryHint("Нажмите для поиска по адресу");
@@ -525,15 +579,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     jsonsearch += search[i];
                     if ((search.length - i) > 1)
                         jsonsearch += "+";
-                }
-                jsonsearch += ",+" + prefs.getString("city", "Санкт-Петербург");
+                }if(prefs.contains("city"))
+                jsonsearch += ",+" + prefs.getString("city", "");
                 executeAsyncTask(new GeoSearchTask(jsonsearch, prefs.getString("city", "Санкт-Петербург"), MainActivity.this.getApplicationContext(), new GeoSearchTask.AsyncResponse() {
                     @Override
                     public void processFinish(ArrayList<JSONObject> output) {
                         for (int i = 0; i < output.size(); i++)
                             try {
                                 suggestions.add(output.get(i).getString("display_name"));
-                            } catch (JSONException e) {
+                            } catch (NullPointerException | JSONException e) {
                                 e.printStackTrace();
                             }
                         String[] columns = {BaseColumns._ID,
@@ -568,13 +622,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         };
         MapEventsOverlay OverlayEvents = new MapEventsOverlay(getBaseContext(), mReceive);
         map.getOverlays().add(OverlayEvents);
-        executeAsyncTask(new AdMobTask(15000, new AdMobTask.AsyncResponse() {
-            @Override
-            public void processFinish(boolean output) {
-                if (output)
-                    ShowAd();
-            }
-        }));
     }
 
     public void ShowMarker(GeoPoint p) {
@@ -617,7 +664,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                 } catch (Exception e) {
                     bottomSheetTextView.setText("Невозможно загрузить адрес");
-                    bottomSheetTextViewSubtitle.setText(output.toString());
+                    //bottomSheetTextViewSubtitle.setText(output.toString());
                 }
             }
         }));
@@ -629,7 +676,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         editor.putInt("lastmarker", map.getOverlays().indexOf(startMarker));
         editor.apply();
         marker_geopostition = p;
-        Log.d(tag, "Marker geoposition: " + String.valueOf(p.getLatitude() - prefs.getFloat("Latitude", 59.93863f)) + ", " + String.valueOf(p.getLongitude() - prefs.getFloat("Longitude", 30.31413f)));
         bottom_sheet_rel.removeAllViews();
         bottom_sheet_comments_layout.removeAllViews();
 
@@ -916,35 +962,95 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }).create();
         builder.show();
     }
+        public Timer timer;
+        public boolean timerActive = false;
+        class MyTimerTask extends TimerTask {
+        @Override
+        public void run() {
+            final StartAppAd startAppAd = new StartAppAd(MainActivity.this);
+            final AdPreferences adPreferences = new AdPreferences();
+            adPreferences.setTestMode(false).setType(StartAppAd.AdType.NON_VIDEO);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    startAppAd.loadAd(adPreferences, new AdEventListener() {
+                        @Override
+                        public void onReceiveAd(Ad ad) {
+                            Log.d(tag, "ad displayed");
+                            startAppAd.showAd();
+                        }
 
+                        @Override
+                        public void onFailedToReceiveAd(Ad ad) {
+
+                        }
+                    });
+                }
+            });
+        }
+            public void stop(){
+                if(timerActive) {
+                    try {
+                        timer.cancel();
+                        timer.purge();
+                        timerActive = false;
+                    }
+                    catch (Exception e){
+                        Log.d(tag, e.getMessage());
+                    }
+                }
+            }
+            public void start(MyTimerTask myTimerTask){
+                if(!timerActive) {
+                    try {
+                        timer = new Timer();
+                        timer.scheduleAtFixedRate(myTimerTask, 15000, 30000);
+                        timerActive = true;
+                    }
+                    catch (Exception e){
+                        Log.d(tag, e.getMessage());
+
+                    }
+                }
+            }
+    }
+
+    public MyTimerTask myTimerTask;
     public void onResume() {
         super.onResume();
-        //this will refresh the osmdroid configuration on resuming.
-        //if you make changes to the configuration, use
-        //SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        //Configuration.getInstance().save(this, prefs);
+        Log.d(tag, "app resumed");
+        StartAppSDK.init(this, "201038986", new SDKAdPreferences().setAge(18).setGender(SDKAdPreferences.Gender.MALE));
+        StartAppAd.disableAutoInterstitial();
+        StartAppAd.disableSplash();
+        StartAppAd.enableAutoInterstitial();
+        StartAppAd.setAutoInterstitialPreferences(
+                new AutoInterstitialPreferences()
+                        .setActivitiesBetweenAds(4)
+        );
+        myTimerTask = new MyTimerTask();
+        myTimerTask.start(myTimerTask);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        Configuration.getInstance().save(this, prefs);
         int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
+            locationManager.removeUpdates(myLocationListener);
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationListener);
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, myLocationListener);
             Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this));
         }
     }
 
-    public void ShowAd() {
-        /*Intent intent = new Intent(MainActivity.this, AdMobActivity.class);
-        startActivity(intent);*/
-    }
-
     @Override
     public void onStart() {
         super.onStart();
+        Log.d(tag, "app started");
     }
 
     @Override
     protected void onPause() {
         // TODO Auto-generated method stub
         super.onPause();
+        Log.d(tag, "app paused");
         locationManager.removeUpdates(myLocationListener);
     }
 
@@ -954,6 +1060,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         SharedPreferences.Editor editor = prefs.edit();
         editor.remove("lastmarker");
+        Log.d(tag, "app stopped");
+        myTimerTask.stop();
         editor.apply();
     }
 
@@ -1125,7 +1233,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         place_text.a[i] = new TextView(MainActivity.this);
                         username_text.a[i].setWidth(400);
                         username_text.a[i].setTextSize(18);
-                        reputation_text.a[i].setWidth(200);
+                        reputation_text.a[i].setWidth(250);
                         reputation_text.a[i].setTextSize(18);
                         place_text.a[i].setWidth(100);
                         place_text.a[i].setTextSize(18);
@@ -1174,8 +1282,39 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void processFinish(List<String> output) {
                 try {
-                    popup_username_status.setText(prefs.getString("status", "Участник закрытого бета-теста"));
+                    prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                    SharedPreferences.Editor editor = prefs.edit();
                     popup_rep.setText(output.get(0));
+                    if(Integer.valueOf(output.get(0))<50) {
+                        popup_username_status.setText("Новичок");
+                        editor.putString("status", "Новичок");
+                        editor.apply();
+                    }
+                    else if(Integer.valueOf(output.get(0))<100){
+                        popup_username_status.setText("Ученик");
+                    editor.putString("status", "Ученик");
+                    editor.apply();
+                }
+                    else if(Integer.valueOf(output.get(0))<200){
+                        popup_username_status.setText("Адепт");
+                        editor.putString("status", "Адепт");
+                        editor.apply();
+                    }
+                    else if(Integer.valueOf(output.get(0))<300){
+                        popup_username_status.setText("Эксперт");
+                        editor.putString("status", "Эксперт");
+                        editor.apply();
+                    }
+                    else if(Integer.valueOf(output.get(0))<1000){
+                        popup_username_status.setText("Мастер");
+                        editor.putString("status", "Мастер");
+                        editor.apply();
+                    }
+                    else if(Integer.valueOf(output.get(0))>1000) {
+                        editor.putString("status", "Легенда");
+                        editor.apply();
+                        popup_username_status.setText("Легенда");
+                    }
                     popup_coins.setText(output.get(1));
                     builder.show();
                 } catch (IndexOutOfBoundsException e) {

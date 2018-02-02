@@ -53,7 +53,6 @@ class GetAccountDataTask extends AsyncTask<String, List<String>, List<String>> {
                 account_data.add(1, json.getString("coins"));
                 return account_data;
             } else {
-                // продукт с pid не найден
                 account_data.add(0,"0");
                 account_data.add(1, "0");
                 account_data.add("No entry found");

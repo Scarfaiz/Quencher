@@ -10,11 +10,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by USER on 27.11.2017.
- */
 public class GetUrlContentTask extends AsyncTask<String, Void, List<XMLParser.Entry>> {
 
     private SharedPreferences prefs;
@@ -36,17 +34,8 @@ public class GetUrlContentTask extends AsyncTask<String, Void, List<XMLParser.En
     protected List<XMLParser.Entry> doInBackground(String... args) {
         try {
             return loadXmlFromNetwork(url);
-        } catch (XmlPullParserException e) {
-            Log.d("LogDebug", e.getMessage());
-            List error = null;
-            error.add("connection_error");
-            error.add(e.getMessage());
-            return error;
-        } catch (IOException e) {
-            List error = null;
-            error.add("xml error");
-            error.add(e.getMessage());
-            return error;
+        } catch (XmlPullParserException | IOException e) {
+            return null;
         }
     }
 
@@ -54,7 +43,7 @@ public class GetUrlContentTask extends AsyncTask<String, Void, List<XMLParser.En
         InputStream stream = null;
         // Instantiate the parser
         XMLParser stackOverflowXmlParser = new XMLParser(tag, subtag);
-        List<XMLParser.Entry> entries = null;
+        List<XMLParser.Entry> entries;
 
         //StringBuilder htmlString = new StringBuilder();
         try {

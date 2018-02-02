@@ -33,18 +33,18 @@
 
     <TextView
         android:id="@+id/textView9"
-        android:layout_width="390dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:textAppearance="@android:style/TextAppearance.Material.Medium"
-        android:layout_marginTop="36dp"
+        android:layout_marginTop="12dp"
         android:text="@string/tutorial_3_text1"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView8" />
 
     <CheckBox
         android:id="@+id/checkedTextView3"
-        android:layout_width="390dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:textAppearance="@android:style/TextAppearance.Material.Medium"
@@ -57,7 +57,7 @@
 
     <TextView
         android:id="@+id/textView10"
-        android:layout_width="390dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginEnd="12dp"
         android:layout_marginStart="12dp"
@@ -70,7 +70,7 @@
 
     <Button
         android:id="@+id/button2"
-        android:layout_width="390dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginEnd="12dp"
         android:layout_marginStart="12dp"
@@ -83,7 +83,7 @@
 
     <Button
         android:id="@+id/button3"
-        android:layout_width="390dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginEnd="12dp"
         android:layout_marginStart="12dp"
