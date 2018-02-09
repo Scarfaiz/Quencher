@@ -78,10 +78,16 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.views.overlay.Marker;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -117,13 +123,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             // TODO Auto-generated method stub
             if (!geodata_updated) {
                 GeoPoint locGeoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-                mapController.animateTo(locGeoPoint);
+                mapController.setCenter(locGeoPoint);
                 mapController.zoomTo(17);
                 my_location_marker.setPosition(locGeoPoint);
                 prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
                 SearchForMarkersFunc(String.valueOf(location.getLatitude()), String.valueOf(location.getLongitude()));
                 Log.d("LogDebug", "My location marker moved to: " + String.valueOf(locGeoPoint.getLatitude() + ", " + String.valueOf(locGeoPoint.getLongitude())));
-                SharedPreferences.Editor editor = prefs.edit();
+                final SharedPreferences.Editor editor = prefs.edit();
                 String Latitude = String.valueOf(location.getLatitude());
                 editor.putString("Latitude", Latitude);
                 String Longitude = String.valueOf(location.getLongitude());
@@ -149,7 +155,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             }
                         } catch (Exception e) {
                             bottomSheetTextView.setText("Невозможно загрузить адрес");
-                            bottomSheetTextViewSubtitle.setText(output.toString());
+                            //bottomSheetTextViewSubtitle.setText(output.toString());
                         }
                     }
                 }));
@@ -211,7 +217,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         map.setMultiTouchControls(true);
         mapController = map.getController();
         mapController.setZoom(15);
-        GeoPoint startPoint = new GeoPoint(Double.valueOf(prefs.getString("Latitude", "59.93863d")), Double.valueOf(prefs.getString("Longitude", "30.31413d")));
+        final GeoPoint startPoint = new GeoPoint(Double.valueOf(prefs.getString("Latitude", "59.93863d")), Double.valueOf(prefs.getString("Longitude", "30.31413d")));
         Log.d(tag, "Loaded Geoposition: " + prefs.getString("Latitude", "59.93863d") + "  " + prefs.getString("Longitude", "30.31413d"));
         mapController.setCenter(startPoint);
         my_location_marker = new Marker(map);
@@ -238,14 +244,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Integer gpsFreqInDistance = 1;
             locationManager.requestLocationUpdates(gpsFreqInMillis, gpsFreqInDistance, criteria, myLocationListener, null);
         }
-        SharedPreferences.Editor editor = prefs.edit();
+        final SharedPreferences.Editor editor = prefs.edit();
         editor.remove("lastmarker");
         editor.apply();
-        dialog=new ProgressDialog(MainActivity.this);
-        dialog.setMessage("Собираем стеклотару...");
-        dialog.setCancelable(false);
-        dialog.setInverseBackgroundForced(false);
-        dialog.show();
             if (!prefs.getString("username", "skipped").equals("skipped")) {
             final NavigationView navigationView = findViewById(R.id.nav_view);
             Menu menu = navigationView.getMenu();
@@ -256,12 +257,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             username_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
             executeAsyncTask(new EntranceTask(entrance_server_address, username_data, MainActivity.this.getApplicationContext(), new EntranceTask.AsyncResponse() {
                 @Override
-                public void processFinish(String output) {
-                    if (output.equals("1")) {
+                public void processFinish(final List<String> output) {
+                    if (output.get(0).equals("1")) {
                         LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
                         final View view = inflater.inflate(R.layout.entrance_popup_window_layout, null);
                         final AlertDialog builder = new AlertDialog.Builder(MainActivity.this)
-                                .setTitle("Рейтинг")
+                                .setTitle("Бонус за ежедневный вход")
                                 .setView(view)
                                 .setPositiveButton("Закрыть", new DialogInterface.OnClickListener() {
                                     @Override
@@ -270,7 +271,65 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                     }
                                 }).create();
                         builder.show();
+                        builder.setOnDismissListener(new AlertDialog.OnDismissListener() {
+                            @Override
+                            public void onDismiss(DialogInterface dialogInterface) {
+                            }
+                        });
                     }
+                        DateFormat format = new SimpleDateFormat("yyyy:MM:dd", Locale.ENGLISH);
+                        final Date today = new Date();
+                        Date trial_date = today;
+                        try {
+                            trial_date = format.parse(output.get(1));
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
+                                if(output.get(1).equals("2018-01-01")) {
+                                    final AlertDialog builder = new AlertDialog.Builder(MainActivity.this)
+                                            .setTitle("Спасибо, что именно Вы присоединились к проекту!")
+                                            .setMessage("В благодарность мы позволим Вам в течение недели пользоваться приложением без рекламы!")
+                                            .setPositiveButton("Закрыть", new DialogInterface.OnClickListener() {
+                                                @Override
+                                                public void onClick(DialogInterface dialog, int id) {
+                                                    dialog.dismiss();
+                                                }
+                                            }).create();
+                                    builder.show();
+                                    final String finalTrial_date = format.format(today);
+                                    builder.setOnDismissListener(new AlertDialog.OnDismissListener() {
+                                        @Override
+                                        public void onDismiss(DialogInterface dialogInterface) {
+                                            final String trial_server_address = "https://178.162.41.115/start_trial.php";
+                                            List<NameValuePair> username_data = new ArrayList<>();
+                                            username_data.add(new BasicNameValuePair("username", prefs.getString("username", "skipped")));
+                                            username_data.add(new BasicNameValuePair("start_date", finalTrial_date));
+                                            executeAsyncTask(new StartTrialTask(trial_server_address, username_data, MainActivity.this.getApplicationContext(), new StartTrialTask.AsyncResponse() {
+                                                @Override
+                                                public void processFinish(String output) {
+                                                    if (output.equals(1)) {
+                                                        editor.putBoolean("pro", true);
+                                                        Log.d(tag, "Trial started");
+                                                        editor.apply();
+                                                    }
+                                                }
+                                            }));
+                                        }
+                                    });
+                                } else if ((today.getTime() - trial_date.getTime()) < 604800000L) {
+                                    if (!prefs.getBoolean("pro", false)) {
+                                        editor.putBoolean("pro", true);
+                                        Log.d(tag, "Trial started");
+                                        editor.apply();
+                                    }
+                                }
+                                    else
+                                    {
+                                        editor.putBoolean("pro", false);
+                                        Log.d(tag, "Trial finished");
+                                        editor.apply();
+                                    }
+
                     final View nav_header = navigationView.getHeaderView(0);
                     final TextView nav_title = nav_header.findViewById(R.id.nav_title);
                     final TextView nav_subtitle = nav_header.findViewById(R.id.nav_subtitle);
@@ -318,6 +377,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }));
                 }
             }));
+                dialog=new ProgressDialog(MainActivity.this);
+                dialog.setMessage("Собираем стеклотару...");
+                dialog.setCancelable(false);
+                dialog.setInverseBackgroundForced(false);
+                dialog.show();
+                showRateAppDialogIfNeeded();
+            } else {
+                dialog=new ProgressDialog(MainActivity.this);
+                dialog.setMessage("Собираем стеклотару...");
+                dialog.setCancelable(false);
+                dialog.setInverseBackgroundForced(false);
+                dialog.show();
             }
         final Toolbar toolbar = findViewById(R.id.toolbar);
         final AppBarLayout appbar = findViewById(R.id.appbar);
@@ -449,6 +520,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             @Override
             public void onClick(View view) {
                 if (bottom_sheet_button_desc.getText() == "Добавить место") {
+                    if(prefs.contains("username")){
                     if (!prefs.getString("username", "skipped").equals("skipped")) {
                         final String account_data_server_address = "https://178.162.41.115/get_account_data.php";
                         executeAsyncTask(new GetAccountDataTask(account_data_server_address, prefs.getString("username", "skipped"), MainActivity.this.getApplicationContext(), new GetAccountDataTask.AsyncResponse() {
@@ -465,7 +537,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                             intent.putExtra("reputation", output.get(0));
                                             startActivity(intent);
                                         } catch (NullPointerException e) {
-                                            Log.d(tag, "A failure accured while creating new marker:" + e.getMessage());
+                                            Log.d(tag, "A failure while creating new marker:" + e.getMessage());
                                         }
                                     } else {
                                         Toast.makeText(MainActivity.this, "Недостаточно крышек :(", Toast.LENGTH_SHORT).show();
@@ -475,7 +547,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                 }
                             }
                         }));
-                    } else
+                    }} else
                         Toast.makeText(MainActivity.this, "Для добавления места необходима регистрация", Toast.LENGTH_SHORT).show();
                 } else if (bottom_sheet_button_desc.getText() == "Добавить комментарий") {
                     if (!prefs.getString("username", "skipped").equals("skipped"))
@@ -715,7 +787,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             }
                         } catch (Exception e) {
                             bottomSheetTextView.setText("Невозможно загрузить адрес");
-                            bottomSheetTextViewSubtitle.setText(output.toString());
                         }
                     }
                 }));
@@ -859,20 +930,27 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                                     bottomSheetTextView.setText(output.get(0));
                                                     bottomSheetTextViewSubtitle.setText(output.get(1));
                                                     TextView wh_textView = new TextView(MainActivity.this);
+                                                    TextView type_textView = new TextView(MainActivity.this);
                                                     TextView r_textView = new TextView(MainActivity.this);
-                                                    if (Integer.valueOf(output.get(2)) == 1)
-                                                        wh_textView.setText("Магазин работает до 22:00");
-                                                    else
-                                                        wh_textView.setText("Магазин работает круглосуточно");
+                                                    if (Integer.valueOf(output.get(2)) == 0)
+                                                        wh_textView.setText(output.get(12)+ " работает до 22:00");
+                                                    else if (Integer.valueOf(output.get(2)) == 1)
+                                                        wh_textView.setText(output.get(12) + " работает круглосуточно");
+                                                    else if (Integer.valueOf(output.get(2)) == 2)
+                                                        wh_textView.setText(output.get(12) + " работает до: " + output.get(11));
+                                                    type_textView.setText(output.get(12));
                                                     if (Integer.valueOf(output.get(3)) == 1)
                                                         r_textView.setText("В продаже имеются только слабоалкогольные напитки");
                                                     else
                                                         r_textView.setText("Широкий ассортимент");
                                                     wh_textView.setTextSize(18);
                                                     r_textView.setTextSize(18);
+                                                    type_textView.setTextSize(18);
                                                     wh_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
+                                                    type_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
                                                     r_textView.setLayoutParams(bottom_sheet_rel.getLayoutParams());
                                                     bottom_sheet_rel.addView(wh_textView);
+                                                    //bottom_sheet_rel.addView(type_textView);
                                                     bottom_sheet_rel.addView(r_textView);
                                                                                 /*ViewGroup.LayoutParams params = bottom_sheet_comments_layout.getLayoutParams();
                                                                                 params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
@@ -927,7 +1005,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                 });
                             }
                         } catch (Exception e) {
-                            Toast.makeText(MainActivity.this, "Не удалось запросить информацию о доступных местах", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(MainActivity.this, "В базе данных еще нет информации о местах в этой области. Если Вы знаете о каких-либо, добавьте их на карту!", Toast.LENGTH_LONG).show();
                         }
                     }
                 }));
@@ -968,6 +1046,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         @Override
         public void run() {
             final StartAppAd startAppAd = new StartAppAd(MainActivity.this);
+            StartAppAd.disableAutoInterstitial();
+            StartAppAd.disableSplash();
+            final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
             final AdPreferences adPreferences = new AdPreferences();
             adPreferences.setTestMode(false).setType(StartAppAd.AdType.NON_VIDEO);
             runOnUiThread(new Runnable() {
@@ -976,8 +1057,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     startAppAd.loadAd(adPreferences, new AdEventListener() {
                         @Override
                         public void onReceiveAd(Ad ad) {
-                            Log.d(tag, "ad displayed");
-                            startAppAd.showAd();
+                            if(!prefs.getBoolean("pro", false)) {
+                                Log.d(tag, "ad displayed");
+                                startAppAd.showAd();
+                            }
                         }
 
                         @Override
@@ -1004,7 +1087,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 if(!timerActive) {
                     try {
                         timer = new Timer();
-                        timer.scheduleAtFixedRate(myTimerTask, 15000, 30000);
+                        timer.scheduleAtFixedRate(myTimerTask, 25000, 45000);
                         timerActive = true;
                     }
                     catch (Exception e){
@@ -1018,18 +1101,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public MyTimerTask myTimerTask;
     public void onResume() {
         super.onResume();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
         Log.d(tag, "app resumed");
-        StartAppSDK.init(this, "201038986", new SDKAdPreferences().setAge(18).setGender(SDKAdPreferences.Gender.MALE));
-        StartAppAd.disableAutoInterstitial();
-        StartAppAd.disableSplash();
-        StartAppAd.enableAutoInterstitial();
-        StartAppAd.setAutoInterstitialPreferences(
-                new AutoInterstitialPreferences()
-                        .setActivitiesBetweenAds(4)
-        );
-        myTimerTask = new MyTimerTask();
-        myTimerTask.start(myTimerTask);
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        Log.d(tag, "pro status: " + String.valueOf(prefs.getBoolean("pro", false)));
+        if(!prefs.getBoolean("pro", false)) {
+            myTimerTask = new MyTimerTask();
+            myTimerTask.start(myTimerTask);
+        }
         Configuration.getInstance().save(this, prefs);
         int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
         if (permission == PermissionChecker.PERMISSION_GRANTED) {
@@ -1061,7 +1139,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         SharedPreferences.Editor editor = prefs.edit();
         editor.remove("lastmarker");
         Log.d(tag, "app stopped");
-        myTimerTask.stop();
+        if(!prefs.getBoolean("pro", false)) {
+            try {
+                myTimerTask.stop();
+            }catch (Exception e)
+            {
+
+            }
+        }
         editor.apply();
     }
 
@@ -1070,7 +1155,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             int permission = PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
             if (permission == PermissionChecker.PERMISSION_GRANTED) {
                 GeoPoint locGeoPoint = new GeoPoint(loc.getLatitude(), loc.getLongitude());
-                mapController.animateTo(locGeoPoint);
+                mapController.setCenter(locGeoPoint);
                 my_location_marker.setPosition(locGeoPoint);
                 Log.d("LogDebug", "My location marker moved to: " + String.valueOf(locGeoPoint.getLatitude() + ", " + String.valueOf(locGeoPoint.getLongitude())));
                 prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
@@ -1345,9 +1430,61 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 CreateAccInfDialog();
             }
         }
+        else if(id==R.id.nav_feedback)
+            createAppRatingDialog("Отправьте отзыв о нашем проекте!", "Если у Вас есть предложения, как можно было бы улучшить приложение, уделите немного своего времени - это для нас очень важно!").show();
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
+    private void showRateAppDialogIfNeeded() {
+        boolean bool = AppPreferences.getInstance(getApplicationContext()).getAppRate();
+        AppPreferences.getInstance(getApplicationContext()).incrementLaunchCount();
+        int i = AppPreferences.getInstance(getApplicationContext()).getLaunchCount();
+        Log.d(tag, "Launch count: " + String.valueOf((i)));
+        if (i==3) {
+            createAppRatingDialog("Отправьте отзыв о нашем проекте!", "Если у Вас есть предложения, как можно было бы улучшить приложение, уделите немного своего времени - это для нас очень важно!").show();
+        }
+    }
 
+    private AlertDialog createAppRatingDialog(String rateAppTitle, String rateAppMessage) {
+        AlertDialog dialog = new AlertDialog.Builder(this).setPositiveButton("Оценить", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface paramAnonymousDialogInterface, int paramAnonymousInt) {
+                openAppInPlayStore(MainActivity.this);
+                AppPreferences.getInstance(MainActivity.this.getApplicationContext()).setAppRate(false);
+            }
+        }).setNegativeButton("Отправить отзыв", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface paramAnonymousDialogInterface, int paramAnonymousInt) {
+                openFeedback(MainActivity.this);
+                AppPreferences.getInstance(MainActivity.this.getApplicationContext()).setAppRate(false);
+            }
+        }).setNeutralButton("Позже", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface paramAnonymousDialogInterface, int paramAnonymousInt) {
+                paramAnonymousDialogInterface.dismiss();
+                AppPreferences.getInstance(MainActivity.this.getApplicationContext()).resetLaunchCount();
+            }
+        }).setMessage(rateAppMessage).setTitle(rateAppTitle).create();
+        return dialog;
+    }
+
+    public static void openAppInPlayStore(Context paramContext) {
+        paramContext.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.neatherbench.quencher")));
+    }
+
+    public static void openFeedback(Context paramContext) {
+        Intent localIntent = new Intent(Intent.ACTION_SEND);
+        localIntent.putExtra(Intent.EXTRA_EMAIL, new String[]{"netherbench@gmail.com"});
+        localIntent.putExtra(Intent.EXTRA_CC, "");
+        String str = null;
+        try {
+            str = paramContext.getPackageManager().getPackageInfo(paramContext.getPackageName(), 0).versionName;
+            localIntent.putExtra(Intent.EXTRA_SUBJECT, "Feedback for Quencher");
+            localIntent.putExtra(Intent.EXTRA_TEXT, "\n\n----------------------------------\n Device OS: Android \n Device OS version: " +
+                    Build.VERSION.RELEASE + "\n App Version: " + str + "\n Device Brand: " + Build.BRAND +
+                    "\n Device Model: " + Build.MODEL + "\n Device Manufacturer: " + Build.MANUFACTURER);
+            localIntent.setType("message/rfc822");
+            paramContext.startActivity(Intent.createChooser(localIntent, "Choose an Email client :"));
+        } catch (Exception e) {
+            Log.d("OpenFeedback", e.getMessage());
+        }
+    }
 }

@@ -64,6 +64,8 @@ class GetEntryDataTask extends AsyncTask<String, List<String>, List<String>> {
                 marker_data.add(8, json.getString("username"));
                 marker_data.add(9, json.getString("valid"));
                 marker_data.add(10, json.getString("id"));
+                marker_data.add(11, json.getString("close_hours"));
+                marker_data.add(12, json.getString("type"));
                 return marker_data;
             } else {
                 // продукт с pid не найден

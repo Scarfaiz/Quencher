@@ -18,6 +18,11 @@
                 android:icon="@drawable/ic_account_box_black_48px"
                 android:textAppearance="@android:style/TextAppearance.Material.Medium"
                 android:title="Зарегистрироваться" />
+            <item
+                android:id="@+id/nav_feedback"
+                android:icon="@drawable/ic_feedback_black_48px"
+                android:textAppearance="@android:style/TextAppearance.Material.Medium"
+                android:title="Отправить отзыв" />
         </menu>
     </item>
 

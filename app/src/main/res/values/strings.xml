@@ -1,8 +1,14 @@
 <resources>
     <string name="app_name">Quencher</string>
     <string-array name="marker_o_h_spinner_items">
-        <item>круглосуточно</item>
-        <item>до 22:00</item>
+        <item>Круглосуточно</item>
+        <item>До 22:00</item>
+        <item>Другое время</item>
+    </string-array>
+
+    <string-array name="marker_type_spinner_items">
+        <item>Магазин</item>
+        <item>Бар</item>
     </string-array>
 
     <string name="mystore_password">a7ewOPm6</string>

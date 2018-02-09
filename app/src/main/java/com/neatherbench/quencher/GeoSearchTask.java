@@ -48,7 +48,7 @@ class GeoSearchTask extends AsyncTask<String, ArrayList<JSONObject>, ArrayList<J
             HttpResponse httpResponse = httpClient.execute(httpGet);
             HttpEntity httpEntity = httpResponse.getEntity();
             is = httpEntity.getContent();
-        } catch (IOException e) {
+        } catch (IOException | IllegalArgumentException e) {
         Log.d(TAG, "An error occurred: " + e.getMessage());
         e.printStackTrace();
     }
